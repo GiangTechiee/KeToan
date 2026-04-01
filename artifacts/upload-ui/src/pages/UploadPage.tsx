@@ -51,8 +51,8 @@ export default function UploadPage() {
     (user: (typeof access.allUsers)[number]) => {
       access.handleLoginAs(user);
       toast({
-        title: `Xin chao, ${user.full_name}!`,
-        description: "Da tai pham vi don vi theo tai khoan.",
+        title: `Xin chào, ${user.full_name}!`,
+        description: "Đã tải phạm vi đơn vị theo tài khoản.",
       });
     },
     [access, toast],

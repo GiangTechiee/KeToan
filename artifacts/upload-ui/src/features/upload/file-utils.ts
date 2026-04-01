@@ -1,5 +1,18 @@
+<<<<<<< Updated upstream
 import type { FactConfig } from "@/data/factRegistry";
 import type { FactDetectionResult, HeaderCandidate, RowData, SheetCell } from "./types";
+=======
+import type { UploadRowInsert } from "@/types/supabase";
+import { FACT_REGISTRY, type FactKey } from "@/data/factRegistry";
+import { repairMojibakeText } from "@/lib/text-repair";
+import type {
+  FactDetectionResult,
+  HeaderCandidate,
+  ImportTargetValue,
+  RowData,
+  SheetCell,
+} from "./types";
+>>>>>>> Stashed changes
 
 export const getLocalISODate = () => {
   const d = new Date();
@@ -38,10 +51,10 @@ export const parseAmount = (value: string | number | null | undefined) => {
 };
 
 export const normalizeHeaderLabel = (header: string) =>
-  header.normalize("NFKC").replace(/\s+/g, " ").trim();
+  repairMojibakeText(header).normalize("NFKC").replace(/\s+/g, " ").trim();
 
 export const normalizeLookupValue = (value: string) =>
-  value
+  repairMojibakeText(value)
     .normalize("NFKC")
     .replace(/[\u00A0\u2000-\u200B\u202F\u205F\u3000]/g, " ")
     .replace(/\s+/g, " ")
@@ -65,7 +78,7 @@ export const normalizeHeadersWithDuplicates = (sourceHeaders: string[]) => {
 
     const renamed = `${base} (${next})`;
     renameNotes.push(
-      `Cot trung ten vi tri ${index + 1}: "${base}" duoc chuan hoa thanh "${renamed}".`,
+      `Cột trùng tên vị trí ${index + 1}: "${base}" được chuẩn hóa thành "${renamed}".`,
     );
     return renamed;
   });
@@ -85,7 +98,7 @@ export const normalizeRowsByHeaders = (
       } else if (typeof value === "number") {
         acc[header] = value;
       } else {
-        acc[header] = String(value);
+        acc[header] = repairMojibakeText(String(value));
       }
       return acc;
     }, {});
@@ -195,7 +208,9 @@ export const detectFactFromMatrix = (
         factConfig.requiredColumns,
       );
       if (!headerCandidate) return;
-      if (headerCandidate.requiredMatches !== factConfig.requiredColumns.length) {
+      if (
+        headerCandidate.requiredMatches !== factConfig.requiredColumns.length
+      ) {
         return;
       }
 
@@ -245,3 +260,50 @@ export const detectFactFromMatrix = (
 
   return bestMatch;
 };
+<<<<<<< Updated upstream
+=======
+
+export const mapRowToInsert = (
+  row: RowData,
+  fact: ImportTargetValue,
+  batchId: string,
+  rowNumber: number,
+): UploadRowInsert => {
+  const readCellText = (...keys: string[]) => {
+    for (const key of keys) {
+      const value = row[key];
+      if (value == null) continue;
+
+      const repaired = repairMojibakeText(String(value)).trim();
+      if (repaired) return repaired;
+    }
+
+    return null;
+  };
+
+  return {
+    batch_id: batchId,
+    row_number: rowNumber,
+    file_date: parseFileDate(row["Ngày"]),
+    system_code: fact === "hqkd" ? readCellText("Mã hệ thống") : null,
+    metric_group: readCellText("Nhóm chỉ tiêu"),
+    category_name:
+      fact === "hqkd"
+        ? readCellText("Khoản mục")
+        : fact === "thu_chi"
+          ? readCellText("Danh mục")
+          : null,
+    subcategory_name: fact === "hqkd" ? readCellText("Tiểu mục") : null,
+    amount: parseAmount(row["Số tiền"]),
+    attribute_name: readCellText("Thuộc tính"),
+    content_text: fact === "hqkd" ? readCellText("Nội dung") : null,
+    company_name_in_file: readCellText("Công ty", "Công ty (2)"),
+    data_type: readCellText("Loại dữ liệu"),
+    block_name: readCellText("Khối", "Khối (2)"),
+    department_name: readCellText("Bộ phận"),
+    raw_json: row,
+  };
+};
+
+export const getFallbackFact = (): FactKey => FACT_REGISTRY[0].value;
+>>>>>>> Stashed changes

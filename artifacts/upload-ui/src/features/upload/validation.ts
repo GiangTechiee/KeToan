@@ -3,11 +3,16 @@ import {
   getFallbackCompanyAliases,
   getFallbackCostCenterAliases,
 } from "@/data/masterDataFallback";
+<<<<<<< Updated upstream
 import {
   isExplicitPlaceholderToken,
   normalizeLookupValue,
 } from "./file-utils";
 import type { FilterScope, RowData } from "./types";
+=======
+import { isExplicitPlaceholderToken, normalizeLookupValue } from "./file-utils";
+import type { FilterScope, ImportTargetValue, RowData } from "./types";
+>>>>>>> Stashed changes
 
 export const validateDataAgainstFilters = (
   data: RowData[],
@@ -78,7 +83,10 @@ export const validateDataAgainstFilters = (
   ) => {
     for (const key of keys) {
       const value = normalizeLookupValue(String(row[key] ?? ""));
-      if (options?.ignorePlaceholderBacktick && isExplicitPlaceholderToken(value)) {
+      if (
+        options?.ignorePlaceholderBacktick &&
+        isExplicitPlaceholderToken(value)
+      ) {
         return "";
       }
       if (value) return value;
@@ -122,7 +130,7 @@ export const validateDataAgainstFilters = (
   }
   if (companyErrRows.length) {
     errs.push(
-      `Cot "Cong ty": ${companyErrRows.length} dong khong hop le. Cho phep: ${permittedCompanies
+      `Cột "Công ty": ${companyErrRows.length} dòng không hợp lệ. Cho phép: ${permittedCompanies
         .map((c) => c.company_name)
         .join(", ")}`,
     );
@@ -132,7 +140,7 @@ export const validateDataAgainstFilters = (
   }
   if (planErrRows.length) {
     errs.push(
-      `Cot "Khoi": ${planErrRows.length} dong khong hop le. Cho phep: ${permittedPlans
+      `Cột "Khối": ${planErrRows.length} dòng không hợp lệ. Cho phép: ${permittedPlans
         .map((p) => p.plan_name)
         .join(", ")}`,
     );
@@ -142,7 +150,7 @@ export const validateDataAgainstFilters = (
   }
   if (ccErrRows.length) {
     errs.push(
-      `Cot "Bo phan": ${ccErrRows.length} dong khong hop le. Cho phep: ${permittedCCs
+      `Cột "Bộ phận": ${ccErrRows.length} dòng không hợp lệ. Cho phép: ${permittedCCs
         .map((cc) => cc.cost_center_name)
         .join(", ")}`,
     );

@@ -1,7 +1,8 @@
 import type { Company } from "@/types/supabase";
+import { repairMojibakeText } from "@/lib/text-repair";
 import { FALLBACK_TIMESTAMP } from "./constants";
 
-export const FALLBACK_COMPANIES: Company[] = [
+const RAW_FALLBACK_COMPANIES: Company[] = [
   {
     company_id: 1,
     company_name: "CÃ´ng ty Cá»• pháº§n Thá»‹nh CÆ°á»ng",
@@ -58,7 +59,8 @@ export const FALLBACK_COMPANIES: Company[] = [
   },
   {
     company_id: 22,
-    company_name: "CÃ´ng ty TNHH xuáº¥t nháº­p kháº©u vÃ  khai thÃ¡c HÆ°ng Thá»‹nh",
+    company_name:
+      "CÃ´ng ty TNHH xuáº¥t nháº­p kháº©u vÃ  khai thÃ¡c HÆ°ng Thá»‹nh",
     created_at: FALLBACK_TIMESTAMP,
     updated_at: FALLBACK_TIMESTAMP,
   },
@@ -75,3 +77,10 @@ export const FALLBACK_COMPANIES: Company[] = [
     updated_at: FALLBACK_TIMESTAMP,
   },
 ];
+
+export const FALLBACK_COMPANIES: Company[] = RAW_FALLBACK_COMPANIES.map(
+  (company) => ({
+    ...company,
+    company_name: repairMojibakeText(company.company_name),
+  }),
+);

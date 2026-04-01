@@ -11,6 +11,7 @@ import {
   getFallbackCompanyCodeById,
   resolveFallbackPlanIds,
 } from "@/data/masterDataFallback";
+import { repairMojibakeText, repairNullableText } from "@/lib/text-repair";
 import { supabase } from "@/lib/supabase";
 import type {
   Company,
@@ -75,6 +76,28 @@ export const getInitials = (name: string) =>
     .join("")
     .toUpperCase();
 
+const repairUser = (user: UsersApp): UsersApp => ({
+  ...user,
+  full_name: repairMojibakeText(user.full_name),
+  email: repairNullableText(user.email),
+});
+
+const repairCompany = (company: Company): Company => ({
+  ...company,
+  company_name: repairMojibakeText(company.company_name),
+});
+
+const repairCostCenter = (costCenter: CostCenter): CostCenter => ({
+  ...costCenter,
+  cost_center_name: repairMojibakeText(costCenter.cost_center_name),
+});
+
+const repairPlan = (plan: Plan): Plan => ({
+  ...plan,
+  plan_name: repairMojibakeText(plan.plan_name),
+  parent_name: repairNullableText(plan.parent_name),
+});
+
 export function useUploadAccess() {
   const [allUsers, setAllUsers] = useState<UsersApp[]>([]);
   const [allCompanies, setAllCompanies] = useState<Company[]>([]);
@@ -102,6 +125,7 @@ export function useUploadAccess() {
     const load = async () => {
       setIsLoadingMaster(true);
 
+<<<<<<< Updated upstream
       const [uRes, scopeRes, permissionRes, coRes, ccRes, pRes] =
         await Promise.all([
           supabase
@@ -147,6 +171,18 @@ export function useUploadAccess() {
         normalizeCostCenter,
       );
       const livePlans = ((pRes.data as Plan[] | null) ?? []).map(normalizePlan);
+=======
+      const liveUsers = ((uRes.data as UsersApp[] | null) ?? []).map(
+        repairUser,
+      );
+      const liveCompanies = ((coRes.data as Company[] | null) ?? []).map(
+        repairCompany,
+      );
+      const liveCostCenters = ((ccRes.data as CostCenter[] | null) ?? []).map(
+        repairCostCenter,
+      );
+      const livePlans = ((pRes.data as Plan[] | null) ?? []).map(repairPlan);
+>>>>>>> Stashed changes
 
       const useUsersFallback = liveUsers.length === 0;
       const useScopeFallback = liveScopes.length === 0;
@@ -156,6 +192,7 @@ export function useUploadAccess() {
       const usePlansFallback = livePlans.length === 0;
 
       setAllUsers(useUsersFallback ? FALLBACK_USERS_APP : liveUsers);
+<<<<<<< Updated upstream
       setAllUserScopes(useScopeFallback ? [] : liveScopes);
       setAllUserPermissions(
         usePermissionsFallback ? [] : livePermissions,
@@ -174,6 +211,14 @@ export function useUploadAccess() {
       );
       setAllPlans(
         (usePlansFallback ? FALLBACK_PLANS : livePlans).map(normalizePlan),
+=======
+      setUsersFallbackActive(useUsersFallback);
+      setAllCompanies(
+        useCompaniesFallback ? FALLBACK_COMPANIES : liveCompanies,
+      );
+      setAllCostCenters(
+        useCostCentersFallback ? FALLBACK_COST_CENTERS : liveCostCenters,
+>>>>>>> Stashed changes
       );
 
       const fallbackDetails: string[] = [];
@@ -186,7 +231,7 @@ export function useUploadAccess() {
 
       setMasterDataNotice(
         fallbackDetails.length
-          ? `Dang dung du lieu fallback workbook cho: ${fallbackDetails.join(", ")}.`
+          ? `Đang dùng dữ liệu fallback workbook cho: ${fallbackDetails.join(", ")}.`
           : null,
       );
       setIsLoadingMaster(false);
@@ -231,11 +276,24 @@ export function useUploadAccess() {
   const allowedCostCenters = useMemo(() => {
     if (!loggedInUser) return [] as CostCenter[];
 
+<<<<<<< Updated upstream
     if (!scopeFallbackActive) {
       const allowedIds = new Set(
         allUserScopes
           .filter((scope) => scope.user_id === loggedInUser.user_id)
           .map((scope) => scope.cost_center_id.trim().toUpperCase()),
+=======
+      const companyIds = new Set<number>(
+        mapping.companyCodes
+          .map((code) => getFallbackCompanyIdByCode(code))
+          .filter((id): id is number => typeof id === "number"),
+      );
+      const planIds = new Set<number>(
+        resolveFallbackPlanIds(mapping.planTokens),
+      );
+      const mappedCostCenters = new Set(
+        mapping.costCenterCodes.map((code) => code.trim().toUpperCase()),
+>>>>>>> Stashed changes
       );
 
       return allCostCenters.filter((cc) =>

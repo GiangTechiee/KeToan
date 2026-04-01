@@ -1,4 +1,5 @@
 import type { Plan } from "@/types/supabase";
+import { repairMojibakeText } from "@/lib/text-repair";
 import { FALLBACK_PLANS } from "./plans";
 
 const FALLBACK_COMPANY_CODE_TO_ID: Record<string, number> = {
@@ -12,12 +13,21 @@ const FALLBACK_COMPANY_CODE_TO_ID: Record<string, number> = {
 };
 
 const FALLBACK_COMPANY_NAME_ALIASES_BY_ID: Record<number, string[]> = {
+<<<<<<< Updated upstream
   1: ["Cong ty Co phan Thinh Cuong"],
 };
 
 const FALLBACK_COST_CENTER_NAME_ALIASES_BY_CODE: Record<string, string[]> = {
   HL_XDV: ["Vinfast Ha Long (61)"],
   TN_AT: ["Depot Thai Nguyen"],
+=======
+  1: [repairMojibakeText("CÃ´ng ty Cá»• pháº§n Thá»‹nh CÆ°á»ng")],
+};
+
+const FALLBACK_COST_CENTER_NAME_ALIASES_BY_CODE: Record<string, string[]> = {
+  HL_XDV: [repairMojibakeText("Vinfast Háº¡ Long (61)")],
+  TN_AT: [repairMojibakeText("Depot ThÃ¡i NguyÃªn")],
+>>>>>>> Stashed changes
 };
 
 const FALLBACK_COMPANY_ID_TO_CODE = Object.fromEntries(
