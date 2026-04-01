@@ -68,6 +68,8 @@ export type UploadBatchStatus =
   | "submitted";
 
 export interface UploadBatchInsert {
+  upload_file_id?: number | null;
+  fact_id?: number | null;
   uploaded_by_user_id?: string | null;
   uploaded_by_auth?: string | null;
   file_name: string;
@@ -78,6 +80,31 @@ export interface UploadBatchInsert {
   failed_rows?: number;
   status: UploadBatchStatus;
   submitted_at?: string;
+  approval_status?: string;
+  preview_rows?: number;
+  validation_status?: string;
+  validation_message?: string | null;
+  missing_source_header_count?: number;
+  preview_payload?: unknown;
+  selected_company_id?: string | null;
+  selected_plan_id?: number | null;
+  selected_cost_center_id?: string | null;
+}
+
+export interface UploadFileInsert {
+  fact_id: number;
+  file_code: string;
+  file_name: string;
+  description?: string | null;
+  selected_company_id?: string | null;
+  selected_plan_id?: number | null;
+  selected_cost_center_id?: string | null;
+  is_submit_enabled?: boolean;
+  missing_source_header_count?: number;
+  current_upload_batch_id?: number | null;
+  approved_upload_batch_id?: number | null;
+  created_by_user_id?: string | null;
+  is_locked?: boolean;
 }
 
 export interface UploadBatchFactInsert {

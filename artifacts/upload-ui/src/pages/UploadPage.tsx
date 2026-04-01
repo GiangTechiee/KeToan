@@ -97,16 +97,19 @@ export default function UploadPage() {
         <UploadWorkspace
           activeTarget={workflow.activeTarget}
           canSubmit={workflow.canSubmit}
+          factTabs={workflow.factTabs}
           fileInputRef={workflow.fileInputRef}
           fileName={workflow.fileName}
           fileSize={workflow.fileSize}
           headers={workflow.headers}
           isDragging={workflow.isDragging}
           isLoggingIn={access.isLoggingIn}
+          isLoadingFacts={workflow.isLoadingFacts}
           isSubmitting={workflow.isSubmitting}
           notLoggedIn={!access.loggedInUser}
           onCompanyChange={access.handleCompanyChange}
           onDrop={workflow.handleDrop}
+          onFactChange={workflow.handleFactChange}
           onFileChange={workflow.handleFileChange}
           onPickFile={openFilePicker}
           onPlanChange={access.setSelectedPlanId}
@@ -115,6 +118,7 @@ export default function UploadPage() {
           rows={workflow.rows}
           selectedCCId={access.selectedCCId}
           selectedCompanyId={access.selectedCompanyId}
+          selectedImportTarget={workflow.selectedImportTarget}
           selectedPlanId={access.selectedPlanId}
           setIsDragging={workflow.setIsDragging}
           totalRows={workflow.totalRows}

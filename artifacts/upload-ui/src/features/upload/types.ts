@@ -3,10 +3,9 @@ import type {
   CostCenter,
   Plan,
   UploadBatchStatus,
-  UploadRowInsert,
   UsersApp,
 } from "@/types/supabase";
-import type { FactConfig, FactKey } from "@/data/factRegistry";
+import type { FactConfig } from "@/data/factRegistry";
 
 export interface RowData {
   [key: string]: string | number | null | undefined;
@@ -14,7 +13,7 @@ export interface RowData {
 
 export type SheetCell = string | number | boolean | Date | null | undefined;
 export type ValidationStatus = "idle" | "validating" | "valid" | "invalid";
-export type ImportTargetValue = FactKey;
+export type ImportTargetValue = string;
 export type BatchPreviewRow = Record<string, unknown>;
 
 export interface BatchRecord {
@@ -53,18 +52,3 @@ export interface FilterScope {
   userPlans: Plan[];
   userCostCenters: CostCenter[];
 }
-
-export const ROW_COLUMN_MAP: { db: keyof UploadRowInsert; label: string }[] = [
-  { db: "file_date", label: "Ngay" },
-  { db: "system_code", label: "Ma he thong" },
-  { db: "metric_group", label: "Nhom chi tieu" },
-  { db: "category_name", label: "Khoan muc" },
-  { db: "subcategory_name", label: "Tieu muc" },
-  { db: "attribute_name", label: "Thuoc tinh" },
-  { db: "content_text", label: "Noi dung" },
-  { db: "company_name_in_file", label: "Cong ty" },
-  { db: "data_type", label: "Loai du lieu" },
-  { db: "block_name", label: "Khoi" },
-  { db: "department_name", label: "Bo phan" },
-  { db: "amount", label: "So tien" },
-];

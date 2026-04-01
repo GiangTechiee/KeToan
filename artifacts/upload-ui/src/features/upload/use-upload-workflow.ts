@@ -9,17 +9,34 @@ import {
 } from "react";
 import * as XLSX from "xlsx";
 
-import { ALL, getFactConfig } from "@/data/factRegistry";
+import {
+  ALL,
+  buildFactConfigMap,
+  getFactConfig,
+  type FactCatalogRecord,
+  type FactColumnRecord,
+  type FactConfig,
+} from "@/data/factRegistry";
+import {
+  getFallbackCompanyAliases,
+  getFallbackCostCenterAliases,
+} from "@/data/masterDataFallback";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import type { UploadBatchFactInsert, UploadBatchInsert } from "@/types/supabase";
+import type {
+  UploadBatchFactInsert,
+  UploadBatchInsert,
+  UploadFileInsert,
+} from "@/types/supabase";
 import {
   detectFactFromMatrix,
   getCellString,
   isEmptyMatrixRow,
   normalizeRowsByHeaders,
+  normalizeLookupValue,
   parseAmount,
   parseFileDate,
+  selectBestHeaderCandidate,
 } from "./file-utils";
 import type {
   FilterScope,
@@ -42,180 +59,35 @@ type WorkflowParams = {
   selectedPlanId: string;
 };
 
-type FactRegistryRecord = {
-  fact_id: number;
-  table_name: string;
+type WorkflowFactTab = {
+  factId: number;
+  factName: string;
+  sourceSheetName: string | null;
+  sortOrder: number;
+  supported: boolean;
+  value: ImportTargetValue;
 };
 
-type SupportedFactConfig = {
-  tableName: string;
-  rowsBuilder: (params: {
-    companyId: string;
-    costCenterId: string;
-    factId: number;
-    planId: number;
-    rows: RowData[];
-    uploadBatchId: number;
-    userName: string;
-  }) => Record<string, unknown>[];
+type BuildFactRowsParams = {
+  companyId: string | null;
+  costCenterId: string | null;
+  factConfig: FactConfig;
+  planId: number | null;
+  resolveCompanyIdFromRow: (row: RowData) => string | null;
+  resolveCostCenterIdFromRow: (row: RowData) => string | null;
+  resolvePlanIdFromRow: (row: RowData) => number | null;
+  rows: RowData[];
+  uploadBatchId: number;
+  userName: string;
 };
 
-const buildHQKDRows: SupportedFactConfig["rowsBuilder"] = ({
-  companyId,
-  costCenterId,
-  factId,
-  planId,
-  rows,
-  uploadBatchId,
-  userName,
-}) =>
-  rows.map((row, index) => ({
-    upload_batch_id: uploadBatchId,
-    fact_id: factId,
-    data_date: parseFileDate(getCellString(row, ["Ngay", "NgÃ y"])),
-    cl_indicator_id: getCellString(row, ["Ma he thong", "Mã hệ thống", "MÃ£ hệ thống"]),
-    rw_indicator_group: getCellString(row, [
-      "Nhom chi tieu",
-      "Nhóm chỉ tiêu",
-      "NhÃ³m chỉ tiêu",
-    ]),
-    rw_indicator_item: getCellString(row, ["Khoan muc", "Khoản mục", "Khoáº£n má»¥c"]),
-    rw_indicator_sub_item: getCellString(row, [
-      "Tieu muc",
-      "Tiểu mục",
-      "Tiá»ƒu má»¥c",
-    ]),
-    is_input_allowed: getCellString(row, [
-      "Thuoc tinh",
-      "Thuộc tính",
-      "Thuá»™c tÃ­nh",
-    ]),
-    content_name: getCellString(row, ["Noi dung", "Nội dung", "Ná»™i dung"]),
-    company_id: companyId,
-    scenario: getCellString(row, [
-      "Loai du lieu",
-      "Loại dữ liệu",
-      "Loáº¡i dá»¯ liá»‡u",
-    ]),
-    plan_id: planId,
-    cost_center_id: costCenterId,
-    amount: parseAmount(getCellString(row, ["So tien", "Số tiền", "Sá»‘ tiá»n"])),
-    input_by: userName,
-    source_row_no: index + 1,
-  }));
-
-const buildSDTienRows: SupportedFactConfig["rowsBuilder"] = ({
-  companyId,
-  costCenterId,
-  factId,
-  planId,
-  rows,
-  uploadBatchId,
-  userName,
-}) =>
-  rows.map((row, index) => ({
-    upload_batch_id: uploadBatchId,
-    fact_id: factId,
-    data_date: parseFileDate(getCellString(row, ["Ngay", "NgÃ y"])),
-    indicator_group: getCellString(row, [
-      "Nhom chi tieu",
-      "Nhóm chỉ tiêu",
-      "NhÃ³m chỉ tiêu",
-    ]),
-    money_type: getCellString(row, [
-      "Loai tien",
-      "Loại tiền",
-      "Loáº¡i tiá»n",
-    ]),
-    company_name_in_file: getCellString(row, [
-      "Cong ty",
-      "Công ty",
-      "CÃ´ng ty",
-      "Cong ty (2)",
-      "Công ty (2)",
-      "CÃ´ng ty (2)",
-    ]),
-    bank_name: getCellString(row, ["Ngan hang", "Ngân hàng", "NgÃ¢n hÃ ng"]),
-    attribute_text: getCellString(row, [
-      "Thuoc tinh",
-      "Thuộc tính",
-      "Thuá»™c tÃ­nh",
-    ]),
-    company_id: companyId,
-    scenario: getCellString(row, [
-      "Loai du lieu",
-      "Loại dữ liệu",
-      "Loáº¡i dá»¯ liá»‡u",
-    ]),
-    plan_id: planId,
-    cost_center_id: costCenterId,
-    amount: parseAmount(getCellString(row, ["So tien", "Số tiền", "Sá»‘ tiá»n"])),
-    variance_amount: parseAmount(
-      getCellString(row, ["Chenh lech", "Chênh lệch", "ChÃªnh lá»‡ch"]),
-    ),
-    created_by: userName,
-    created_time: new Date().toISOString(),
-    source_row_no: index + 1,
-  }));
-
-const buildThuChiRows: SupportedFactConfig["rowsBuilder"] = ({
-  companyId,
-  costCenterId,
-  factId,
-  planId,
-  rows,
-  uploadBatchId,
-}) =>
-  rows.map((row, index) => ({
-    upload_batch_id: uploadBatchId,
-    fact_id: factId,
-    data_date: parseFileDate(getCellString(row, ["Ngay", "NgÃ y"])),
-    indicator_group: getCellString(row, [
-      "Nhom chi tieu",
-      "Nhóm chỉ tiêu",
-      "NhÃ³m chỉ tiêu",
-    ]),
-    category_name: getCellString(row, ["Danh muc", "Danh mục", "Danh má»¥c"]),
-    source_name: getCellString(row, ["Nguon", "Nguồn"]),
-    business_block_name: getCellString(row, ["Khoi", "Khối", "Khá»‘i"]),
-    facility_name: getCellString(row, ["Co so", "Cơ sở", "CÆ¡ sá»Ÿ"]),
-    tm_amount: parseAmount(getCellString(row, ["TM"])),
-    nh_amount: parseAmount(getCellString(row, ["NH"])),
-    vay_amount: parseAmount(getCellString(row, ["TVAY"])),
-    total_amount: parseAmount(getCellString(row, ["Tong", "Tổng", "Tá»•ng"])),
-    attribute_text: getCellString(row, [
-      "Thuoc tinh",
-      "Thuộc tính",
-      "Thuá»™c tÃ­nh",
-    ]),
-    company_id: companyId,
-    scenario: getCellString(row, [
-      "Loai du lieu",
-      "Loại dữ liệu",
-      "Loáº¡i dá»¯ liá»‡u",
-    ]),
-    plan_id: planId,
-    cost_center_id: costCenterId,
-    source_row_no: index + 1,
-  }));
-
-const SUPPORTED_FACTS: Record<ImportTargetValue, SupportedFactConfig | null> = {
-  hqkd: {
-    tableName: "fact_hqkd",
-    rowsBuilder: buildHQKDRows,
-  },
-  sd_tien: {
-    tableName: "fact_su_dung_tien",
-    rowsBuilder: buildSDTienRows,
-  },
-  thu_chi: {
-    tableName: "fact_thu_chi",
-    rowsBuilder: buildThuChiRows,
-  },
-  doanh_thu: null,
-  phai_thu: null,
-  phai_tra: null,
-};
+const SKIPPED_COLUMNS = new Set([
+  "fact_row_id",
+  "row_hash",
+  "created_at",
+  "updated_at",
+  "extra_data",
+]);
 
 const insertInChunks = async (
   tableName: string,
@@ -230,6 +102,163 @@ const insertInChunks = async (
     }
   }
 };
+
+const createUploadFileCode = (params: {
+  factCode: string;
+  companyId: string;
+  planId: string;
+  costCenterId: string;
+}) =>
+  [
+    params.factCode,
+    params.companyId,
+    String(params.planId),
+    params.costCenterId,
+  ].join("__");
+
+const parseBoolean = (value: string | number | boolean | null | undefined) => {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "boolean") return value;
+  const text = String(value).trim().toLowerCase();
+  if (["true", "1", "yes", "y", "co", "có"].includes(text)) return true;
+  if (["false", "0", "no", "n", "khong", "không"].includes(text)) return false;
+  return null;
+};
+
+const coerceValueByDataType = (
+  dataType: string,
+  value: string | number | boolean | null | undefined,
+) => {
+  if (value === null || value === undefined || value === "") return null;
+
+  const normalizedType = dataType.toLowerCase();
+
+  if (
+    normalizedType.includes("numeric") ||
+    normalizedType.includes("decimal") ||
+    normalizedType.includes("real") ||
+    normalizedType.includes("double")
+  ) {
+    if (typeof value === "boolean") return value ? 1 : 0;
+    return parseAmount(value);
+  }
+
+  if (
+    normalizedType.includes("int") &&
+    !normalizedType.includes("interval")
+  ) {
+    const parsed =
+      typeof value === "boolean" ? (value ? 1 : 0) : parseAmount(value);
+    return parsed === null ? null : Math.trunc(parsed);
+  }
+
+  if (normalizedType.includes("bool")) {
+    return parseBoolean(value);
+  }
+
+  if (normalizedType === "date") {
+    return typeof value === "boolean" ? null : parseFileDate(value);
+  }
+
+  if (normalizedType.includes("timestamp")) {
+    if (typeof value === "string" && value.trim()) {
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+    }
+    return null;
+  }
+
+  if (normalizedType.includes("json")) {
+    if (typeof value === "string") {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  }
+
+  return String(value).trim() || null;
+};
+
+const resolveSystemColumnValue = (
+  column: FactColumnRecord,
+  rowIndex: number,
+  params: Omit<BuildFactRowsParams, "rows">,
+  row: RowData,
+) => {
+  switch (column.column_name) {
+    case "upload_batch_id":
+      return params.uploadBatchId;
+    case "fact_id":
+      return params.factConfig.factId;
+    case "company_id":
+      return params.companyId ?? params.resolveCompanyIdFromRow(row) ?? undefined;
+    case "plan_id":
+      return params.planId ?? params.resolvePlanIdFromRow(row) ?? undefined;
+    case "cost_center_id":
+      return (
+        params.costCenterId ?? params.resolveCostCenterIdFromRow(row) ?? undefined
+      );
+    case "source_row_no":
+      return rowIndex + 1;
+    case "input_by":
+    case "created_by":
+      return params.userName;
+    case "created_time":
+      return new Date().toISOString();
+    default:
+      return undefined;
+  }
+};
+
+const buildFactRows = ({
+  companyId,
+  costCenterId,
+  factConfig,
+  planId,
+  resolveCompanyIdFromRow,
+  resolveCostCenterIdFromRow,
+  resolvePlanIdFromRow,
+  rows,
+  uploadBatchId,
+  userName,
+}: BuildFactRowsParams) =>
+  rows.map((row, rowIndex) => {
+    const payload: Record<string, unknown> = {};
+
+    factConfig.columns.forEach((column) => {
+      if (SKIPPED_COLUMNS.has(column.column_name)) return;
+
+      const systemValue = resolveSystemColumnValue(column, rowIndex, {
+        companyId,
+        costCenterId,
+        factConfig,
+        planId,
+        resolveCompanyIdFromRow,
+        resolveCostCenterIdFromRow,
+        resolvePlanIdFromRow,
+        uploadBatchId,
+        userName,
+      }, row);
+
+      if (systemValue !== undefined) {
+        payload[column.column_name] = systemValue;
+        return;
+      }
+
+      const header = column.source_excel_header?.trim();
+      if (!header) return;
+
+      payload[column.column_name] = coerceValueByDataType(
+        column.data_type,
+        row[header],
+      );
+    });
+
+    return payload;
+  });
 
 export function useUploadWorkflow({
   canCreate,
@@ -246,8 +275,11 @@ export function useUploadWorkflow({
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [activeImportTarget, setActiveImportTarget] =
-    useState<ImportTargetValue | null>(null);
+  const [selectedImportTarget, setSelectedImportTarget] =
+    useState<ImportTargetValue>("");
+  const [factConfigs, setFactConfigs] = useState<Record<string, FactConfig>>({});
+  const [factTabs, setFactTabs] = useState<WorkflowFactTab[]>([]);
+  const [isLoadingFacts, setIsLoadingFacts] = useState(true);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState("");
   const [fileSize, setFileSize] = useState(0);
@@ -263,9 +295,69 @@ export function useUploadWorkflow({
   const [isDragging, setIsDragging] = useState(false);
 
   const activeTarget = useMemo(
-    () => (activeImportTarget ? getFactConfig(activeImportTarget) : null),
-    [activeImportTarget],
+    () => getFactConfig(factConfigs, selectedImportTarget),
+    [factConfigs, selectedImportTarget],
   );
+
+  useEffect(() => {
+    const loadFacts = async () => {
+      setIsLoadingFacts(true);
+
+      const [{ data: factData, error: factError }, { data: columnData, error: columnError }] =
+        await Promise.all([
+          supabase
+            .from("vw_fact_catalog")
+            .select(
+              "fact_id, fact_code, fact_name, table_name, source_sheet_name, description, grain_description, is_active, sort_order, total_declared_columns",
+            )
+            .eq("is_active", true)
+            .order("sort_order"),
+          supabase
+            .from("fact_column_registry")
+            .select(
+              "fact_column_id, fact_id, column_name, display_name, data_type, is_required, is_dimension, is_measure, is_system_column, source_excel_column, source_excel_header, display_order, description, created_at, updated_at",
+            )
+            .order("display_order"),
+        ]);
+
+      if (factError || !factData?.length) {
+        setFactConfigs({});
+        setFactTabs([]);
+        setSelectedImportTarget("");
+        setIsLoadingFacts(false);
+        return;
+      }
+
+      const catalogs = factData as FactCatalogRecord[];
+      const columns = (columnError ? [] : (columnData as FactColumnRecord[] | null)) ?? [];
+      const nextFactConfigs = buildFactConfigMap(catalogs, columns);
+
+      setFactConfigs(nextFactConfigs);
+      setFactTabs(
+        catalogs.map((fact) => ({
+          factId: fact.fact_id,
+          factName: fact.fact_name,
+          sourceSheetName: fact.source_sheet_name ?? null,
+          sortOrder: fact.sort_order,
+          supported: nextFactConfigs[fact.table_name]?.supported ?? false,
+          value: fact.table_name,
+        })),
+      );
+      setSelectedImportTarget((currentValue) => currentValue || catalogs[0].table_name);
+      setIsLoadingFacts(false);
+    };
+
+    void loadFacts();
+  }, []);
+
+  useEffect(() => {
+    if (!factTabs.length) return;
+
+    const activeExists = factTabs.some((fact) => fact.value === selectedImportTarget);
+    if (!activeExists) {
+      setSelectedImportTarget(factTabs[0].value);
+    }
+  }, [factTabs, selectedImportTarget]);
 
   const resolvedPlanId = useMemo(() => {
     if (resolvedCCId) {
@@ -281,13 +373,13 @@ export function useUploadWorkflow({
     return selectedPlanId !== ALL ? Number(selectedPlanId) : null;
   }, [resolvedCCId, scope.userCostCenters, selectedPlanId]);
 
-  const headersAreExact = useCallback(() => {
+  const headersContainRequiredColumns = useCallback(() => {
     const requiredColumns = activeTarget?.requiredColumns ?? [];
-    if (!requiredColumns.length || headers.length !== requiredColumns.length) {
+    if (!requiredColumns.length) {
       return false;
     }
 
-    return requiredColumns.every((header, index) => headers[index] === header);
+    return requiredColumns.every((header) => headers.includes(header));
   }, [activeTarget, headers]);
 
   const clearUploadSelection = useCallback(() => {
@@ -297,7 +389,6 @@ export function useUploadWorkflow({
   }, []);
 
   const clearParsedRows = useCallback(() => {
-    setActiveImportTarget(null);
     setTotalRows(0);
     setRows([]);
     setAllParsedRows([]);
@@ -311,6 +402,16 @@ export function useUploadWorkflow({
     setValidationErrors([]);
     setValidationWarnings([]);
   }, [clearParsedRows, clearUploadSelection]);
+
+  const handleFactChange = useCallback(
+    (value: string) => {
+      if (value === selectedImportTarget) return;
+
+      setSelectedImportTarget(value);
+      handleClearFile();
+    },
+    [handleClearFile, selectedImportTarget],
+  );
 
   const parseFile = useCallback(
     async (file: File) => {
@@ -332,6 +433,25 @@ export function useUploadWorkflow({
       setValidationWarnings([]);
 
       try {
+        if (!activeTarget) {
+          clearParsedRows();
+          setValidationStatus("invalid");
+          setValidationWarnings([]);
+          setValidationErrors(["Khong tim thay metadata fact dang chon."]);
+          return;
+        }
+
+        if (!activeTarget.supported || !activeTarget.requiredColumns.length) {
+          clearParsedRows();
+          setValidationStatus("invalid");
+          setValidationWarnings([]);
+          setValidationErrors([
+            activeTarget.unsupportedReason ??
+              "Fact dang chon chua du metadata de kiem tra tren frontend.",
+          ]);
+          return;
+        }
+
         const buffer = await file.arrayBuffer();
         const workbook = XLSX.read(buffer, {
           type: "array",
@@ -354,57 +474,40 @@ export function useUploadWorkflow({
           return;
         }
 
-        const detectedFact = detectFactFromMatrix(matrixData);
-        if (!detectedFact) {
+        const headerCandidate = selectBestHeaderCandidate(
+          matrixData,
+          activeTarget.requiredColumns,
+        );
+
+        if (
+          !headerCandidate ||
+          headerCandidate.requiredMatches !== activeTarget.requiredColumns.length
+        ) {
+          const detectedFact = detectFactFromMatrix(
+            matrixData,
+            Object.values(factConfigs),
+          );
           clearParsedRows();
           setValidationStatus("invalid");
           setValidationWarnings([]);
-          setValidationErrors(["Khong tu nhan dien duoc fact tu header workbook."]);
+          setValidationErrors([
+            detectedFact
+              ? `File co ve thuoc fact "${detectedFact.factConfig.label}", khong phai tab "${activeTarget.label}".`
+              : `Khong tim thay header hop le cho fact "${activeTarget.label}".`,
+          ]);
           return;
         }
 
-        const { factConfig, headerCandidate } = detectedFact;
         const fileHeaders = headerCandidate.headers;
         const structuralErrors: string[] = [];
 
-        setActiveImportTarget(factConfig.value);
-
-        const missingColumns = factConfig.requiredColumns.filter(
+        const missingColumns = activeTarget.requiredColumns.filter(
           (column) => !fileHeaders.includes(column),
         );
 
         if (missingColumns.length) {
           structuralErrors.push(
             `Thieu ${missingColumns.length} cot: ${missingColumns.join(", ")}`,
-          );
-        }
-
-        if (!missingColumns.length) {
-          const orderErrors = factConfig.requiredColumns.flatMap(
-            (column, expectedIndex) => {
-              const actualIndex = fileHeaders.indexOf(column);
-              return actualIndex !== expectedIndex
-                ? [
-                    `"${column}" (vi tri ${actualIndex + 1}, can ${expectedIndex + 1})`,
-                  ]
-                : [];
-            },
-          );
-
-          if (orderErrors.length) {
-            structuralErrors.push(
-              `Sai thu tu ${orderErrors.length} cot: ${orderErrors.join("; ")}`,
-            );
-          }
-        }
-
-        const extraColumns = fileHeaders.filter(
-          (column) => !factConfig.requiredColumns.includes(column),
-        );
-
-        if (extraColumns.length) {
-          structuralErrors.push(
-            `${extraColumns.length} cot khong nhan dang: ${extraColumns.join(", ")}`,
           );
         }
 
@@ -425,7 +528,7 @@ export function useUploadWorkflow({
           selectedCompanyId,
           selectedCCId,
           selectedPlanId,
-          factConfig.value,
+          activeTarget,
           scope,
         );
 
@@ -452,8 +555,10 @@ export function useUploadWorkflow({
       }
     },
     [
+      activeTarget,
       clearParsedRows,
       clearUploadSelection,
+      factConfigs,
       masterDataNotice,
       scope,
       selectedCCId,
@@ -468,7 +573,7 @@ export function useUploadWorkflow({
       validationStatus === "idle" ||
       validationStatus === "validating" ||
       !allParsedRows.length ||
-      !activeImportTarget
+      !activeTarget
     ) {
       return;
     }
@@ -478,7 +583,7 @@ export function useUploadWorkflow({
       selectedCompanyId,
       selectedCCId,
       selectedPlanId,
-      activeImportTarget,
+      activeTarget,
       scope,
     );
 
@@ -501,7 +606,7 @@ export function useUploadWorkflow({
     setValidationErrors([]);
     setValidationStatus("valid");
   }, [
-    activeImportTarget,
+    activeTarget,
     allParsedRows,
     clearParsedRows,
     fileName,
@@ -538,49 +643,154 @@ export function useUploadWorkflow({
   );
 
   const handleSubmit = useCallback(async () => {
-    if (!activeImportTarget || !activeTarget?.supported) return;
-    if (
-      !loggedInUser ||
-      !canCreate ||
-      !resolvedCompanyId ||
-      !resolvedCCId ||
-      !resolvedPlanId
-    ) {
+    if (!activeTarget?.supported) return;
+    if (!loggedInUser || !canCreate) {
       return;
     }
     if (validationStatus !== "valid" || !uploadFile || !allParsedRows.length) {
       return;
     }
-    if (!headersAreExact()) return;
-
-    const factConfig = SUPPORTED_FACTS[activeImportTarget];
-    if (!factConfig) {
-      toast({
-        title: "Submit that bai",
-        description: "Fact nay chua duoc noi vao schema moi.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!headersContainRequiredColumns()) return;
 
     setIsSubmitting(true);
     let createdBatchId: number | null = null;
+    let uploadFileId: number | null = null;
 
     try {
-      const { data: factMeta, error: factMetaError } = await supabase
-        .from("fact_registry")
-        .select("fact_id, table_name")
-        .eq("table_name", factConfig.tableName)
-        .eq("is_active", true)
-        .single();
+      const selectedCompanyValue =
+        selectedCompanyId !== ALL ? selectedCompanyId : null;
+      const selectedCostCenterValue = selectedCCId !== ALL ? selectedCCId : null;
+      const selectedPlanValue =
+        selectedPlanId !== ALL ? Number(selectedPlanId) : null;
+      const allowedCompanies =
+        selectedCompanyValue === null
+          ? scope.userCompanies
+          : scope.userCompanies.filter(
+              (company) => String(company.company_id) === selectedCompanyValue,
+            );
+      const allowedPlans =
+        selectedPlanValue === null
+          ? scope.userPlans
+          : scope.userPlans.filter((plan) => plan.plan_id === selectedPlanValue);
+      const allowedCostCenters =
+        selectedCostCenterValue === null
+          ? scope.userCostCenters
+          : scope.userCostCenters.filter(
+              (costCenter) =>
+                String(
+                  costCenter.cost_center_id ?? costCenter.cost_center_code ?? "",
+                ) === selectedCostCenterValue,
+            );
 
-      if (factMetaError || !factMeta) {
-        throw new Error(
-          factMetaError?.message ?? "Khong tim thay metadata fact trong DB.",
+      const companyLookup = new Map<string, string>();
+      allowedCompanies.forEach((company) => {
+        const companyId = String(company.company_id);
+        [
+          company.company_name,
+          companyId,
+          ...getFallbackCompanyAliases(company.company_id),
+        ].forEach((candidate) => {
+          const normalized = normalizeLookupValue(String(candidate));
+          if (normalized) companyLookup.set(normalized, companyId);
+        });
+      });
+
+      const planLookup = new Map<string, number>();
+      allowedPlans.forEach((plan) => {
+        [plan.plan_name, String(plan.plan_id)].forEach((candidate) => {
+          const normalized = normalizeLookupValue(String(candidate));
+          if (normalized) planLookup.set(normalized, plan.plan_id);
+        });
+      });
+
+      const costCenterLookup = new Map<string, string>();
+      allowedCostCenters.forEach((costCenter) => {
+        const costCenterId = String(
+          costCenter.cost_center_id ?? costCenter.cost_center_code ?? "",
         );
+        [
+          costCenter.cost_center_name,
+          costCenterId,
+          ...getFallbackCostCenterAliases(costCenterId),
+        ].forEach((candidate) => {
+          const normalized = normalizeLookupValue(String(candidate));
+          if (normalized) costCenterLookup.set(normalized, costCenterId);
+        });
+      });
+
+      const resolveCompanyIdFromRow = (row: RowData) => {
+        const value = getCellString(row, activeTarget.filterColumns.company);
+        if (!value) return null;
+        return companyLookup.get(normalizeLookupValue(value)) ?? null;
+      };
+
+      const resolvePlanIdFromRow = (row: RowData) => {
+        const value = getCellString(row, activeTarget.filterColumns.plan);
+        if (!value) return null;
+        return planLookup.get(normalizeLookupValue(value)) ?? null;
+      };
+
+      const resolveCostCenterIdFromRow = (row: RowData) => {
+        const value = getCellString(row, activeTarget.filterColumns.costCenter);
+        if (!value) return null;
+        return costCenterLookup.get(normalizeLookupValue(value)) ?? null;
+      };
+
+      const fileCode = createUploadFileCode({
+        factCode: activeTarget.factCode,
+        companyId: selectedCompanyValue ?? ALL,
+        planId: selectedPlanValue === null ? ALL : String(selectedPlanValue),
+        costCenterId: selectedCostCenterValue ?? ALL,
+      });
+
+      const { data: existingUploadFile, error: existingUploadFileError } =
+        await supabase
+          .from("upload_files")
+          .select("upload_file_id")
+          .eq("file_code", fileCode)
+          .eq("fact_id", activeTarget.factId)
+          .maybeSingle();
+
+      if (existingUploadFileError) {
+        throw new Error(existingUploadFileError.message);
+      }
+
+      if (existingUploadFile?.upload_file_id) {
+        uploadFileId = existingUploadFile.upload_file_id;
+      } else {
+        const uploadFilePayload: UploadFileInsert = {
+          fact_id: activeTarget.factId,
+          file_code: fileCode,
+          file_name: activeTarget.sourceSheetName ?? activeTarget.label,
+          description: activeTarget.description,
+          selected_company_id: selectedCompanyValue,
+          selected_plan_id: selectedPlanValue,
+          selected_cost_center_id: selectedCostCenterValue,
+          is_submit_enabled: true,
+          missing_source_header_count: 0,
+          created_by_user_id: loggedInUser.user_id,
+          is_locked: false,
+        };
+
+        const { data: insertedUploadFile, error: uploadFileError } =
+          await supabase
+            .from("upload_files")
+            .insert(uploadFilePayload)
+            .select("upload_file_id")
+            .single();
+
+        if (uploadFileError || !insertedUploadFile) {
+          throw new Error(
+            uploadFileError?.message ?? "Khong the tao upload_file.",
+          );
+        }
+
+        uploadFileId = insertedUploadFile.upload_file_id;
       }
 
       const batchPayload: UploadBatchInsert = {
+        upload_file_id: uploadFileId,
+        fact_id: activeTarget.factId,
         uploaded_by_user_id: loggedInUser.user_id,
         file_name: fileName,
         original_file_name: uploadFile.name,
@@ -590,6 +800,15 @@ export function useUploadWorkflow({
         failed_rows: 0,
         status: "processing",
         submitted_at: new Date().toISOString(),
+        approval_status: "processing",
+        preview_rows: Math.min(allParsedRows.length, 200),
+        validation_status: "pending",
+        validation_message: null,
+        missing_source_header_count: 0,
+        preview_payload: rows.slice(0, 20),
+        selected_company_id: selectedCompanyValue,
+        selected_plan_id: selectedPlanValue,
+        selected_cost_center_id: selectedCostCenterValue,
       };
 
       const { data: insertedBatch, error: batchError } = await supabase
@@ -605,21 +824,24 @@ export function useUploadWorkflow({
       const batchId = insertedBatch.upload_batch_id;
       createdBatchId = batchId;
 
-      const factRows = factConfig.rowsBuilder({
-        companyId: resolvedCompanyId,
-        costCenterId: resolvedCCId,
-        factId: (factMeta as FactRegistryRecord).fact_id,
-        planId: resolvedPlanId,
+      const factRows = buildFactRows({
+        companyId: selectedCompanyValue,
+        costCenterId: selectedCostCenterValue,
+        factConfig: activeTarget,
+        planId: selectedPlanValue,
+        resolveCompanyIdFromRow,
+        resolveCostCenterIdFromRow,
+        resolvePlanIdFromRow,
         rows: allParsedRows,
         uploadBatchId: batchId,
         userName: loggedInUser.full_name,
       });
 
-      await insertInChunks(factConfig.tableName, factRows);
+      await insertInChunks(activeTarget.tableName, factRows);
 
       const batchFactPayload: UploadBatchFactInsert = {
         upload_batch_id: batchId,
-        fact_id: (factMeta as FactRegistryRecord).fact_id,
+        fact_id: activeTarget.factId,
         imported_rows: factRows.length,
         success_rows: factRows.length,
         failed_rows: 0,
@@ -640,11 +862,27 @@ export function useUploadWorkflow({
           success_rows: factRows.length,
           failed_rows: 0,
           status: "completed",
+          validation_status: "pending",
         })
         .eq("upload_batch_id", batchId);
 
       if (finalizeBatchError) {
         throw new Error(finalizeBatchError.message);
+      }
+
+      if (uploadFileId !== null) {
+        const { error: finalizeUploadFileError } = await supabase
+          .from("upload_files")
+          .update({
+            current_upload_batch_id: batchId,
+            is_submit_enabled: true,
+            missing_source_header_count: 0,
+          })
+          .eq("upload_file_id", uploadFileId);
+
+        if (finalizeUploadFileError) {
+          throw new Error(finalizeUploadFileError.message);
+        }
       }
 
       handleClearFile();
@@ -673,18 +911,17 @@ export function useUploadWorkflow({
       setIsSubmitting(false);
     }
   }, [
-    activeImportTarget,
     activeTarget,
     allParsedRows,
     canCreate,
     fileName,
     handleClearFile,
-    headersAreExact,
+    headersContainRequiredColumns,
     loggedInUser,
     onSubmitted,
-    resolvedCCId,
-    resolvedCompanyId,
-    resolvedPlanId,
+    selectedCCId,
+    selectedCompanyId,
+    selectedPlanId,
     toast,
     uploadFile,
     validationStatus,
@@ -692,9 +929,6 @@ export function useUploadWorkflow({
 
   const canSubmit =
     !!loggedInUser &&
-    !!resolvedCompanyId &&
-    !!resolvedCCId &&
-    !!resolvedPlanId &&
     !!activeTarget &&
     activeTarget.supported &&
     validationStatus === "valid" &&
@@ -705,17 +939,21 @@ export function useUploadWorkflow({
   return {
     activeTarget,
     canSubmit,
+    factTabs,
     fileInputRef,
     fileName,
     fileSize,
+    handleFactChange,
     handleClearFile,
     handleDrop,
     handleFileChange,
     handleSubmit,
     headers,
     isDragging,
+    isLoadingFacts,
     isSubmitting,
     rows,
+    selectedImportTarget,
     setIsDragging,
     totalRows,
     validationErrors,

@@ -1,12 +1,5 @@
-import type { UploadRowInsert } from "@/types/supabase";
-import { FACT_REGISTRY, type FactKey } from "@/data/factRegistry";
-import type {
-  FactDetectionResult,
-  HeaderCandidate,
-  ImportTargetValue,
-  RowData,
-  SheetCell,
-} from "./types";
+import type { FactConfig } from "@/data/factRegistry";
+import type { FactDetectionResult, HeaderCandidate, RowData, SheetCell } from "./types";
 
 export const getLocalISODate = () => {
   const d = new Date();
@@ -190,11 +183,13 @@ export const selectBestHeaderCandidate = (
 
 export const detectFactFromMatrix = (
   rows: SheetCell[][],
+  factConfigs: FactConfig[],
 ): FactDetectionResult | null => {
   let bestMatch: FactDetectionResult | null = null;
 
-  FACT_REGISTRY.filter((fact) => fact.requiredColumns.length > 0).forEach(
-    (factConfig) => {
+  factConfigs
+    .filter((fact) => fact.requiredColumns.length > 0)
+    .forEach((factConfig) => {
       const headerCandidate = selectBestHeaderCandidate(
         rows,
         factConfig.requiredColumns,
@@ -246,42 +241,7 @@ export const detectFactFromMatrix = (
       if (headerCandidate.rowIndex < bestMatch.headerCandidate.rowIndex) {
         bestMatch = { factConfig, headerCandidate };
       }
-    },
-  );
+    });
 
   return bestMatch;
 };
-
-export const mapRowToInsert = (
-  row: RowData,
-  fact: ImportTargetValue,
-  batchId: string,
-  rowNumber: number,
-): UploadRowInsert => ({
-  batch_id: batchId,
-  row_number: rowNumber,
-  file_date: parseFileDate(row["NgÃ y"]),
-  system_code:
-    fact === "hqkd" ? String(row["MÃ£ há»‡ thá»‘ng"] ?? "").trim() || null : null,
-  metric_group: String(row["NhÃ³m chá»‰ tiÃªu"] ?? "").trim() || null,
-  category_name:
-    fact === "hqkd"
-      ? String(row["Khoáº£n má»¥c"] ?? "").trim() || null
-      : fact === "thu_chi"
-        ? String(row["Danh má»¥c"] ?? "").trim() || null
-        : null,
-  subcategory_name:
-    fact === "hqkd" ? String(row["Tiá»ƒu má»¥c"] ?? "").trim() || null : null,
-  amount: parseAmount(row["Sá»‘ tiá»n"]),
-  attribute_name: String(row["Thuá»™c tÃ­nh"] ?? "").trim() || null,
-  content_text:
-    fact === "hqkd" ? String(row["Ná»™i dung"] ?? "").trim() || null : null,
-  company_name_in_file:
-    String(row["CÃ´ng ty"] ?? row["CÃ´ng ty (2)"] ?? "").trim() || null,
-  data_type: String(row["Loáº¡i dá»¯ liá»‡u"] ?? "").trim() || null,
-  block_name: String(row["Khá»‘i"] ?? row["Khá»‘i (2)"] ?? "").trim() || null,
-  department_name: String(row["Bá»™ pháº­n"] ?? "").trim() || null,
-  raw_json: row,
-});
-
-export const getFallbackFact = (): FactKey => FACT_REGISTRY[0].value;

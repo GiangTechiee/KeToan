@@ -1,4 +1,4 @@
-import { ALL, getFactConfig } from "@/data/factRegistry";
+import { ALL, type FactConfig } from "@/data/factRegistry";
 import {
   getFallbackCompanyAliases,
   getFallbackCostCenterAliases,
@@ -7,19 +7,17 @@ import {
   isExplicitPlaceholderToken,
   normalizeLookupValue,
 } from "./file-utils";
-import type { FilterScope, ImportTargetValue, RowData } from "./types";
+import type { FilterScope, RowData } from "./types";
 
 export const validateDataAgainstFilters = (
   data: RowData[],
   companyId: string,
   ccId: string,
   planId: string,
-  fact: ImportTargetValue,
+  factConfig: FactConfig | null,
   scope: FilterScope,
 ): string[] => {
-  if (!data.length || !scope.loggedInUser) return [];
-
-  const factConfig = getFactConfig(fact);
+  if (!data.length || !scope.loggedInUser || !factConfig) return [];
 
   const permittedCompanies =
     companyId === ALL
@@ -65,6 +63,9 @@ export const validateDataAgainstFilters = (
   const companyErrRows: number[] = [];
   const planErrRows: number[] = [];
   const ccErrRows: number[] = [];
+  const missingCompanyRows: number[] = [];
+  const missingPlanRows: number[] = [];
+  const missingCCRows: number[] = [];
 
   const companyColumns = factConfig.filterColumns.company;
   const planColumns = factConfig.filterColumns.plan;
@@ -93,11 +94,22 @@ export const validateDataAgainstFilters = (
     const khoi = extractValue(row, planColumns);
     const bp = extractValue(row, ccColumns);
 
+    if (companyColumns.length && !cty) {
+      missingCompanyRows.push(rowNum);
+    }
     if (companyColumns.length && cty && !companyValidValues.has(cty)) {
       companyErrRows.push(rowNum);
     }
+
+    if (planColumns.length && !khoi) {
+      missingPlanRows.push(rowNum);
+    }
     if (planColumns.length && khoi && !planValidValues.has(khoi)) {
       planErrRows.push(rowNum);
+    }
+
+    if (ccColumns.length && !bp) {
+      missingCCRows.push(rowNum);
     }
     if (ccColumns.length && bp && !ccValidValues.has(bp)) {
       ccErrRows.push(rowNum);
@@ -105,6 +117,9 @@ export const validateDataAgainstFilters = (
   });
 
   const errs: string[] = [];
+  if (missingCompanyRows.length) {
+    errs.push(`Cot "Cong ty": ${missingCompanyRows.length} dong dang de trong.`);
+  }
   if (companyErrRows.length) {
     errs.push(
       `Cot "Cong ty": ${companyErrRows.length} dong khong hop le. Cho phep: ${permittedCompanies
@@ -112,12 +127,18 @@ export const validateDataAgainstFilters = (
         .join(", ")}`,
     );
   }
+  if (missingPlanRows.length) {
+    errs.push(`Cot "Khoi": ${missingPlanRows.length} dong dang de trong.`);
+  }
   if (planErrRows.length) {
     errs.push(
       `Cot "Khoi": ${planErrRows.length} dong khong hop le. Cho phep: ${permittedPlans
         .map((p) => p.plan_name)
         .join(", ")}`,
     );
+  }
+  if (missingCCRows.length) {
+    errs.push(`Cot "Bo phan": ${missingCCRows.length} dong dang de trong.`);
   }
   if (ccErrRows.length) {
     errs.push(

@@ -33,21 +33,35 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { Company, CostCenter, Plan } from "@/types/supabase";
-import type { RowData, ValidationStatus } from "./types";
+import type { ImportTargetValue, RowData, ValidationStatus } from "./types";
 
 type Props = {
-  activeTarget: { label: string; supported: boolean } | null;
+  activeTarget: {
+    description: string;
+    label: string;
+    supported: boolean;
+    unsupportedReason?: string;
+  } | null;
   canSubmit: boolean;
+  factTabs: Array<{
+    factId: number;
+    factName: string;
+    sourceSheetName: string | null;
+    sortOrder: number;
+    value: ImportTargetValue;
+  }>;
   fileInputRef: RefObject<HTMLInputElement | null>;
   fileName: string;
   fileSize: number;
   headers: string[];
   isDragging: boolean;
   isLoggingIn: boolean;
+  isLoadingFacts: boolean;
   isSubmitting: boolean;
   notLoggedIn: boolean;
   onCompanyChange: (value: string) => void;
   onDrop: (event: DragEvent<HTMLDivElement>) => void;
+  onFactChange: (value: string) => void;
   onFileChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onPickFile: () => void;
   onPlanChange: (value: string) => void;
@@ -56,6 +70,7 @@ type Props = {
   rows: RowData[];
   selectedCCId: string;
   selectedCompanyId: string;
+  selectedImportTarget: ImportTargetValue;
   selectedPlanId: string;
   setIsDragging: (value: boolean) => void;
   totalRows: number;
@@ -70,15 +85,19 @@ type Props = {
 export function UploadWorkspace({
   activeTarget,
   canSubmit,
+  factTabs,
   fileInputRef,
   fileName,
   fileSize,
   headers,
   isDragging,
   isLoggingIn,
+  isLoadingFacts,
+  isSubmitting,
   notLoggedIn,
   onCompanyChange,
   onDrop,
+  onFactChange,
   onFileChange,
   onPickFile,
   onPlanChange,
@@ -87,6 +106,7 @@ export function UploadWorkspace({
   rows,
   selectedCCId,
   selectedCompanyId,
+  selectedImportTarget,
   selectedPlanId,
   setIsDragging,
   totalRows,
@@ -111,6 +131,68 @@ export function UploadWorkspace({
             </span>
           </div>
           <div className="px-5 py-4 space-y-3">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <Label className="text-[11px] font-semibold text-foreground">
+                  Fact upload
+                </Label>
+                {activeTarget && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold",
+                      activeTarget.supported
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                        : "border-amber-200 bg-amber-50 text-amber-700",
+                    )}
+                  >
+                    {activeTarget.supported ? "San sang validate" : "Chua support submit"}
+                  </span>
+                )}
+              </div>
+
+              {isLoadingFacts ? (
+                <div className="rounded-2xl border border-border/60 bg-[#f8f9fc] px-3 py-2 text-[11px] text-muted-foreground">
+                  Dang tai danh sach fact...
+                </div>
+              ) : (
+                <Select
+                  value={selectedImportTarget}
+                  onValueChange={onFactChange}
+                  disabled={isLoadingFacts}
+                >
+                  <SelectTrigger className="h-11 rounded-2xl border-border/70 text-sm bg-[#f8f9fc]">
+                    <SelectValue placeholder="Chon fact upload" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {factTabs.map((fact) => (
+                      <SelectItem
+                        key={fact.factId}
+                        value={fact.value}
+                      >
+                        {fact.factName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {activeTarget && (
+                <div
+                  className={cn(
+                    "rounded-2xl border px-3 py-2 text-[11px]",
+                    activeTarget.supported
+                      ? "border-border/60 bg-[#f8f9fc] text-muted-foreground"
+                      : "border-amber-200 bg-amber-50 text-amber-700",
+                  )}
+                >
+                  {activeTarget.supported
+                    ? activeTarget.description
+                    : activeTarget.unsupportedReason ??
+                      "Fact dang chon chua co rule validate tren frontend."}
+                </div>
+              )}
+            </div>
+
             <div className="grid gap-3 md:grid-cols-3">
               <div className="space-y-1.5">
                 <Label className="flex items-center gap-1 text-[11px] font-semibold text-foreground">
@@ -188,13 +270,6 @@ export function UploadWorkspace({
               </div>
             </div>
 
-            {notLoggedIn === false &&
-              (selectedCompanyId === ALL || selectedCCId === ALL) && (
-                <p className="text-[11px] text-amber-600 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3 shrink-0" />
-                  Can chon cu the Cong ty va Cost Center de submit.
-                </p>
-              )}
           </div>
         </div>
 
@@ -204,8 +279,8 @@ export function UploadWorkspace({
             <h2 className="text-xs font-semibold text-foreground">Upload file</h2>
             <span className="inline-flex items-center rounded-full border border-border/60 bg-[#f8f9fc] px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
               {activeTarget
-                ? `Da nhan dien: ${activeTarget.label}`
-                : "Tu nhan dien fact"}
+                ? `Dang check: ${activeTarget.label}`
+                : "Chon fact de check"}
             </span>
             <span className="ml-auto text-[10px] text-muted-foreground">
               CSV · XLSX
@@ -213,7 +288,7 @@ export function UploadWorkspace({
           </div>
           <div className="p-4 flex flex-col gap-3 flex-1">
             <div className="rounded-xl border border-border/60 bg-[#f8f9fc] px-3 py-2 text-[11px] text-muted-foreground">
-              He thong tu nhan dien fact tu header file roi moi kiem tra du lieu.
+              Data preview va validation se chay theo fact dang chon o ben trai.
             </div>
 
             <input
@@ -304,6 +379,11 @@ export function UploadWorkspace({
                       {activeTarget ? activeTarget.label : "Hop le"}
                     </p>
                   )}
+                  {validationStatus !== "valid" && activeTarget && (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Fact dang chon: {activeTarget.label}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -326,7 +406,11 @@ export function UploadWorkspace({
               size="sm"
               className="gap-1.5 rounded-2xl h-10 w-full shadow-sm font-semibold text-xs"
             >
-              <ClipboardList className="w-3.5 h-3.5" />
+              {isSubmitting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <ClipboardList className="w-3.5 h-3.5" />
+              )}
               Gui du lieu
             </Button>
           </div>
@@ -386,7 +470,7 @@ export function UploadWorkspace({
             <div className="min-w-0">
               <h2 className="text-sm font-semibold text-foreground">Data Preview</h2>
               <p className="text-[11px] text-muted-foreground">
-                Preview hien thi toi da 200 dong truoc khi submit.
+                Preview hien thi toi da 200 dong va duoc check theo fact dang chon.
               </p>
             </div>
           </div>
