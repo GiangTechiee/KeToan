@@ -12,13 +12,17 @@ const FALLBACK_COMPANY_CODE_TO_ID: Record<string, number> = {
 };
 
 const FALLBACK_COMPANY_NAME_ALIASES_BY_ID: Record<number, string[]> = {
-  1: ["CÃ´ng ty Cá»• pháº§n Thá»‹nh CÆ°á»ng"],
+  1: ["Cong ty Co phan Thinh Cuong"],
 };
 
 const FALLBACK_COST_CENTER_NAME_ALIASES_BY_CODE: Record<string, string[]> = {
-  HL_XDV: ["Vinfast Háº¡ Long (61)"],
-  TN_AT: ["Depot ThÃ¡i NguyÃªn"],
+  HL_XDV: ["Vinfast Ha Long (61)"],
+  TN_AT: ["Depot Thai Nguyen"],
 };
+
+const FALLBACK_COMPANY_ID_TO_CODE = Object.fromEntries(
+  Object.entries(FALLBACK_COMPANY_CODE_TO_ID).map(([code, id]) => [id, code]),
+) as Record<number, string>;
 
 const normalizeToken = (value: string) => value.trim().toUpperCase();
 
@@ -27,7 +31,25 @@ export const getFallbackCompanyIdByCode = (code: string): number | null => {
   return typeof resolved === "number" ? resolved : null;
 };
 
-export const getFallbackCompanyAliases = (companyId: number): string[] => {
+export const getFallbackCompanyCodeById = (
+  companyId: number | string,
+): string | null => {
+  if (typeof companyId === "string") {
+    const normalized = normalizeToken(companyId);
+    return normalized || null;
+  }
+
+  return FALLBACK_COMPANY_ID_TO_CODE[companyId] ?? null;
+};
+
+export const getFallbackCompanyAliases = (
+  companyId: number | string,
+): string[] => {
+  if (typeof companyId === "string") {
+    const legacyId = getFallbackCompanyIdByCode(companyId);
+    return legacyId ? FALLBACK_COMPANY_NAME_ALIASES_BY_ID[legacyId] ?? [] : [];
+  }
+
   return FALLBACK_COMPANY_NAME_ALIASES_BY_ID[companyId] ?? [];
 };
 

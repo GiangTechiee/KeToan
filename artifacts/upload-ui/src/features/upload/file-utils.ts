@@ -99,6 +99,18 @@ export const normalizeRowsByHeaders = (
   });
 };
 
+export const getCellString = (row: RowData, keys: string[]) => {
+  for (const key of keys) {
+    const value = row[key];
+    if (value === null || value === undefined) continue;
+
+    const text = String(value).trim();
+    if (text) return text;
+  }
+
+  return "";
+};
+
 export const trimTrailingEmptyCells = (row: SheetCell[]) => {
   const cells = row.map((cell) => String(cell ?? "").trim());
   let lastNonEmptyIdx = -1;

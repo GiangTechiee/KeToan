@@ -18,19 +18,17 @@ export type ImportTargetValue = FactKey;
 export type BatchPreviewRow = Record<string, unknown>;
 
 export interface BatchRecord {
-  batch_id: string;
-  upload_date: string;
-  accountant_name: string;
-  company_id: number;
-  cost_center_code: string;
-  bp: string | null;
+  upload_batch_id: number;
+  uploaded_by_user_id: string | null;
+  uploaded_by_auth?: string | null;
   file_name: string;
-  file_type: string | null;
-  total_rows: number;
-  preview_rows: number;
-  status: UploadBatchStatus;
-  uploaded_by: string | null;
+  original_file_name: string;
   note: string | null;
+  total_rows: number;
+  success_rows: number;
+  failed_rows: number;
+  status: UploadBatchStatus;
+  submitted_at: string;
   created_at: string;
   updated_at: string;
 }

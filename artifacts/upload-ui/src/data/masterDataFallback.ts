@@ -10,6 +10,7 @@ export {
 } from "./master-data/users";
 export {
   getFallbackCompanyAliases,
+  getFallbackCompanyCodeById,
   getFallbackCompanyIdByCode,
   getFallbackCostCenterAliases,
   resolveFallbackPlanIds,

@@ -153,8 +153,11 @@ export function UploadWorkspace({
                   <SelectContent className="rounded-xl">
                     <SelectItem value={ALL}>Tat ca ({userCostCenters.length})</SelectItem>
                     {userCostCenters.map((cc) => (
-                      <SelectItem key={cc.cost_center_code} value={cc.cost_center_code}>
-                        [{cc.cost_center_code}] {cc.cost_center_name}
+                      <SelectItem
+                        key={cc.cost_center_id ?? cc.cost_center_code}
+                        value={String(cc.cost_center_id ?? cc.cost_center_code)}
+                      >
+                        [{cc.cost_center_id ?? cc.cost_center_code}] {cc.cost_center_name}
                       </SelectItem>
                     ))}
                   </SelectContent>

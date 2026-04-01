@@ -54,3 +54,5 @@ Thumbs.db
 .playwright-mcp/
 *.log
 *.png
+.runtime/
+*.pid

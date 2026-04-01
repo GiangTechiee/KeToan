@@ -34,7 +34,9 @@ export const validateDataAgainstFilters = (
   const permittedCCs =
     ccId === ALL
       ? scope.userCostCenters
-      : scope.userCostCenters.filter((cc) => cc.cost_center_code === ccId);
+      : scope.userCostCenters.filter(
+          (cc) => (cc.cost_center_id ?? cc.cost_center_code) === ccId,
+        );
 
   const companyValidValues = new Set(
     permittedCompanies.flatMap((c) => [
@@ -51,8 +53,10 @@ export const validateDataAgainstFilters = (
   const ccValidValues = new Set(
     permittedCCs.flatMap((cc) => [
       normalizeLookupValue(cc.cost_center_name),
-      normalizeLookupValue(cc.cost_center_code),
-      ...getFallbackCostCenterAliases(cc.cost_center_code).map(
+      normalizeLookupValue(String(cc.cost_center_id ?? cc.cost_center_code ?? "")),
+      ...getFallbackCostCenterAliases(
+        String(cc.cost_center_id ?? cc.cost_center_code ?? ""),
+      ).map(
         normalizeLookupValue,
       ),
     ]),

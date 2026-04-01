@@ -20,11 +20,10 @@ export function useUploadHistory({
   const [previewBatch, setPreviewBatch] = useState<BatchRecord | null>(null);
   const [batchRows, setBatchRows] = useState<BatchPreviewRow[]>([]);
   const [batchRowsLoading, setBatchRowsLoading] = useState(false);
-  const [uploadRowsPreviewAvailable, setUploadRowsPreviewAvailable] =
-    useState(true);
-  const [uploadRowsPreviewNotice, setUploadRowsPreviewNotice] = useState<
-    string | null
-  >(null);
+  const [uploadRowsPreviewAvailable] = useState(false);
+  const [uploadRowsPreviewNotice] = useState<string | null>(
+    "Schema moi luu du lieu theo cac fact table. Preview chi tiet batch chua duoc noi vao UI nay.",
+  );
 
   const closePreview = useCallback(() => {
     setPreviewBatch(null);
@@ -39,9 +38,9 @@ export function useUploadHistory({
       const { data } = await supabase
         .from("upload_batches")
         .select(
-          "batch_id, upload_date, accountant_name, company_id, cost_center_code, bp, file_name, file_type, total_rows, preview_rows, status, uploaded_by, note, created_at, updated_at",
+          "upload_batch_id, uploaded_by_user_id, uploaded_by_auth, file_name, original_file_name, note, total_rows, success_rows, failed_rows, status, submitted_at, created_at, updated_at",
         )
-        .eq("uploaded_by", loggedInUser.user_id)
+        .eq("uploaded_by_user_id", loggedInUser.user_id)
         .order("created_at", { ascending: false })
         .limit(50);
 
@@ -65,50 +64,11 @@ export function useUploadHistory({
     closePreview();
   }, [closePreview, historyEnabled]);
 
-  const handleViewBatch = useCallback(
-    async (batch: BatchRecord) => {
-      if (!uploadRowsPreviewAvailable) return;
-
-      setPreviewBatch(batch);
-      setBatchRows([]);
-      setBatchRowsLoading(true);
-
-      try {
-        const { data, error } = await supabase
-          .from("upload_rows")
-          .select(
-            "file_date, system_code, metric_group, category_name, subcategory_name, amount, attribute_name, content_text, company_name_in_file, data_type, block_name, department_name",
-          )
-          .eq("batch_id", batch.batch_id)
-          .order("row_number")
-          .limit(300);
-
-        if (error) {
-          const message = error.message.toLowerCase();
-          const tableMissing =
-            error.code === "PGRST205" ||
-            message.includes("upload_rows") ||
-            message.includes("does not exist");
-
-          if (tableMissing) {
-            setUploadRowsPreviewAvailable(false);
-            setUploadRowsPreviewNotice(
-              "Live DB chua co bang upload_rows. Tam tat preview chi tiet lich su.",
-            );
-            closePreview();
-            return;
-          }
-
-          throw new Error(error.message);
-        }
-
-        setBatchRows((data ?? []) as BatchPreviewRow[]);
-      } finally {
-        setBatchRowsLoading(false);
-      }
-    },
-    [closePreview, uploadRowsPreviewAvailable],
-  );
+  const handleViewBatch = useCallback((batch: BatchRecord) => {
+    setPreviewBatch(batch);
+    setBatchRows([]);
+    setBatchRowsLoading(false);
+  }, []);
 
   const handlePreviewOpenChange = useCallback(
     (open: boolean) => {

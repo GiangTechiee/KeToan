@@ -1,56 +1,92 @@
 export interface UsersApp {
   user_id: string;
-  auth_user_id: string | null;
   full_name: string;
   email: string | null;
-  cost_center_code: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  auth_user_id?: string | null;
+  cost_center_code?: string | null;
 }
 
 export type AppUser = UsersApp;
 
 export interface CostCenter {
-  cost_center_code: string;
+  cost_center_id?: string;
   cost_center_name: string;
-  company_id: number;
+  company_id: string | number;
   plan_id: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  cost_center_code?: string;
 }
 
 export interface Company {
-  company_id: number;
+  company_id: string | number;
   company_name: string;
   created_at: string;
   updated_at: string;
+  is_active?: boolean;
 }
 
 export interface Plan {
   plan_id: number;
   plan_name: string;
-  parent_name: string | null;
+  created_at: string;
+  updated_at: string;
+  is_active?: boolean;
+  parent_name?: string | null;
+}
+
+export interface UserDataScope {
+  id: number;
+  user_id: string;
+  company_id: string;
+  plan_id: number;
+  cost_center_id: string;
   created_at: string;
   updated_at: string;
 }
 
-export type UploadBatchStatus = "draft" | "validated" | "submitted" | "failed";
+export interface UserPermission {
+  user_id: string;
+  can_create: boolean;
+  can_read: boolean;
+  can_update: boolean;
+  can_approve: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type UploadBatchStatus =
+  | "draft"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "validated"
+  | "submitted";
 
 export interface UploadBatchInsert {
-  upload_date: string;
-  accountant_name: string;
-  company_id: number;
-  cost_center_code: string;
-  bp?: string | null;
+  uploaded_by_user_id?: string | null;
+  uploaded_by_auth?: string | null;
   file_name: string;
-  file_type?: string | null;
-  preview_rows: number;
-  status: UploadBatchStatus;
-  uploaded_by: string;
+  original_file_name: string;
   note?: string | null;
   total_rows: number;
+  success_rows?: number;
+  failed_rows?: number;
+  status: UploadBatchStatus;
+  submitted_at?: string;
+}
+
+export interface UploadBatchFactInsert {
+  upload_batch_id: number;
+  fact_id: number;
+  imported_rows: number;
+  success_rows?: number;
+  failed_rows?: number;
+  status: UploadBatchStatus;
 }
 
 export interface UploadRowInsert {

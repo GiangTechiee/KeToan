@@ -44,7 +44,6 @@ export default function UploadPage() {
     scope,
     selectedCCId: access.selectedCCId,
     selectedCompanyId: access.selectedCompanyId,
-    selectedPlan: access.selectedPlan,
     selectedPlanId: access.selectedPlanId,
   });
 
