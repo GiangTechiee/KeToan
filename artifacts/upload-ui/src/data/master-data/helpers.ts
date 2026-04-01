@@ -1,0 +1,68 @@
+import type { Plan } from "@/types/supabase";
+import { FALLBACK_PLANS } from "./plans";
+
+const FALLBACK_COMPANY_CODE_TO_ID: Record<string, number> = {
+  TC: 1,
+  XVP: 2,
+  AAG: 3,
+  GA: 4,
+  HT: 22,
+  HTX_XVP: 23,
+  HTX_XTQ: 24,
+};
+
+const FALLBACK_COMPANY_NAME_ALIASES_BY_ID: Record<number, string[]> = {
+  1: ["CÃ´ng ty Cá»• pháº§n Thá»‹nh CÆ°á»ng"],
+};
+
+const FALLBACK_COST_CENTER_NAME_ALIASES_BY_CODE: Record<string, string[]> = {
+  HL_XDV: ["Vinfast Háº¡ Long (61)"],
+  TN_AT: ["Depot ThÃ¡i NguyÃªn"],
+};
+
+const normalizeToken = (value: string) => value.trim().toUpperCase();
+
+export const getFallbackCompanyIdByCode = (code: string): number | null => {
+  const resolved = FALLBACK_COMPANY_CODE_TO_ID[normalizeToken(code)];
+  return typeof resolved === "number" ? resolved : null;
+};
+
+export const getFallbackCompanyAliases = (companyId: number): string[] => {
+  return FALLBACK_COMPANY_NAME_ALIASES_BY_ID[companyId] ?? [];
+};
+
+export const getFallbackCostCenterAliases = (
+  costCenterCode: string,
+): string[] => {
+  return (
+    FALLBACK_COST_CENTER_NAME_ALIASES_BY_CODE[normalizeToken(costCenterCode)] ??
+    []
+  );
+};
+
+export const resolveFallbackPlanIds = (
+  planTokens: string[],
+  plans: Plan[] = FALLBACK_PLANS,
+): number[] => {
+  const normalized = planTokens
+    .map(normalizeToken)
+    .filter((token) => token.length > 0);
+
+  if (normalized.length === 0) return [];
+
+  const ids = new Set<number>();
+  plans.forEach((plan) => {
+    const planName = normalizeToken(plan.plan_name);
+    if (
+      normalized.some(
+        (token) =>
+          token === String(plan.plan_id) ||
+          token === planName ||
+          planName.includes(token),
+      )
+    ) {
+      ids.add(plan.plan_id);
+    }
+  });
+  return [...ids];
+};
