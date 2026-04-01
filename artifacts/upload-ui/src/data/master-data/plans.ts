@@ -1,7 +1,8 @@
 import type { Plan } from "@/types/supabase";
+import { repairMojibakeText } from "@/lib/text-repair";
 import { FALLBACK_TIMESTAMP } from "./constants";
 
-export const FALLBACK_PLANS: Plan[] = [
+const RAW_FALLBACK_PLANS: Plan[] = [
   {
     plan_id: 1,
     plan_name: "Khá»‘i KD CÃ´ng nghá»‡",
@@ -66,3 +67,9 @@ export const FALLBACK_PLANS: Plan[] = [
     updated_at: FALLBACK_TIMESTAMP,
   },
 ];
+
+export const FALLBACK_PLANS: Plan[] = RAW_FALLBACK_PLANS.map((plan) => ({
+  ...plan,
+  plan_name: repairMojibakeText(plan.plan_name),
+  parent_name: plan.parent_name ? repairMojibakeText(plan.parent_name) : null,
+}));

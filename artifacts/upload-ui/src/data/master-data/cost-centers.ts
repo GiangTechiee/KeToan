@@ -1,7 +1,8 @@
 import type { CostCenter } from "@/types/supabase";
+import { repairMojibakeText } from "@/lib/text-repair";
 import { FALLBACK_TIMESTAMP } from "./constants";
 
-export const FALLBACK_COST_CENTERS: CostCenter[] = [
+const RAW_FALLBACK_COST_CENTERS: CostCenter[] = [
   {
     cost_center_code: "GA_ICT",
     cost_center_name: "ICT - GA",
@@ -471,3 +472,9 @@ export const FALLBACK_COST_CENTERS: CostCenter[] = [
     updated_at: FALLBACK_TIMESTAMP,
   },
 ];
+
+export const FALLBACK_COST_CENTERS: CostCenter[] =
+  RAW_FALLBACK_COST_CENTERS.map((costCenter) => ({
+    ...costCenter,
+    cost_center_name: repairMojibakeText(costCenter.cost_center_name),
+  }));

@@ -1,4 +1,5 @@
 import type { UsersApp } from "@/types/supabase";
+import { repairMojibakeText } from "@/lib/text-repair";
 import { FALLBACK_TIMESTAMP } from "./constants";
 
 export interface FallbackUserMapping {
@@ -16,7 +17,7 @@ export interface FallbackUserFilePermission {
   canApprove: boolean;
 }
 
-export const FALLBACK_USERS_APP: UsersApp[] = [
+const RAW_FALLBACK_USERS_APP: UsersApp[] = [
   {
     user_id: "1234",
     auth_user_id: null,
@@ -69,7 +70,14 @@ export const FALLBACK_USERS_APP: UsersApp[] = [
   },
 ];
 
-export const FALLBACK_USER_MAPPINGS: FallbackUserMapping[] = [
+export const FALLBACK_USERS_APP: UsersApp[] = RAW_FALLBACK_USERS_APP.map(
+  (user) => ({
+    ...user,
+    full_name: repairMojibakeText(user.full_name),
+  }),
+);
+
+const RAW_FALLBACK_USER_MAPPINGS: FallbackUserMapping[] = [
   {
     user_id: "1234",
     companyCodes: ["TC"],
@@ -101,6 +109,12 @@ export const FALLBACK_USER_MAPPINGS: FallbackUserMapping[] = [
     planTokens: ["SR"],
   },
 ];
+
+export const FALLBACK_USER_MAPPINGS: FallbackUserMapping[] =
+  RAW_FALLBACK_USER_MAPPINGS.map((mapping) => ({
+    ...mapping,
+    planTokens: mapping.planTokens.map(repairMojibakeText),
+  }));
 
 export const FALLBACK_USER_FILE_PERMISSIONS: FallbackUserFilePermission[] = [
   {

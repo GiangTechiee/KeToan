@@ -2,12 +2,30 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { repairMojibakeText, repairNullableText } from "@/lib/text-repair";
 import { supabase } from "@/lib/supabase";
 import type { BatchPreviewRow, BatchRecord } from "./types";
 
 type HistoryParams = {
   historyEnabled: boolean;
   loggedInUser: { user_id: string } | null;
+};
+
+const repairBatch = (batch: BatchRecord): BatchRecord => ({
+  ...batch,
+  accountant_name: repairMojibakeText(batch.accountant_name),
+  bp: repairNullableText(batch.bp),
+  file_name: repairMojibakeText(batch.file_name),
+  note: repairNullableText(batch.note),
+});
+
+const repairPreviewRow = (row: BatchPreviewRow): BatchPreviewRow => {
+  return Object.fromEntries(
+    Object.entries(row).map(([key, value]) => [
+      key,
+      typeof value === "string" ? repairMojibakeText(value) : value,
+    ]),
+  );
 };
 
 export function useUploadHistory({
@@ -44,7 +62,7 @@ export function useUploadHistory({
         .order("created_at", { ascending: false })
         .limit(50);
 
-      setHistoryBatches((data ?? []) as BatchRecord[]);
+      setHistoryBatches(((data ?? []) as BatchRecord[]).map(repairBatch));
     } finally {
       setHistoryLoading(false);
     }
@@ -64,11 +82,58 @@ export function useUploadHistory({
     closePreview();
   }, [closePreview, historyEnabled]);
 
+<<<<<<< Updated upstream
   const handleViewBatch = useCallback((batch: BatchRecord) => {
     setPreviewBatch(batch);
     setBatchRows([]);
     setBatchRowsLoading(false);
   }, []);
+=======
+  const handleViewBatch = useCallback(
+    async (batch: BatchRecord) => {
+      if (!uploadRowsPreviewAvailable) return;
+
+      setPreviewBatch(batch);
+      setBatchRows([]);
+      setBatchRowsLoading(true);
+
+      try {
+        const { data, error } = await supabase
+          .from("upload_rows")
+          .select(
+            "file_date, system_code, metric_group, category_name, subcategory_name, amount, attribute_name, content_text, company_name_in_file, data_type, block_name, department_name",
+          )
+          .eq("batch_id", batch.batch_id)
+          .order("row_number")
+          .limit(300);
+
+        if (error) {
+          const message = error.message.toLowerCase();
+          const tableMissing =
+            error.code === "PGRST205" ||
+            message.includes("upload_rows") ||
+            message.includes("does not exist");
+
+          if (tableMissing) {
+            setUploadRowsPreviewAvailable(false);
+            setUploadRowsPreviewNotice(
+              "Live DB chưa có bảng upload_rows. Tạm tắt preview chi tiết lịch sử.",
+            );
+            closePreview();
+            return;
+          }
+
+          throw new Error(error.message);
+        }
+
+        setBatchRows(((data ?? []) as BatchPreviewRow[]).map(repairPreviewRow));
+      } finally {
+        setBatchRowsLoading(false);
+      }
+    },
+    [closePreview, uploadRowsPreviewAvailable],
+  );
+>>>>>>> Stashed changes
 
   const handlePreviewOpenChange = useCallback(
     (open: boolean) => {

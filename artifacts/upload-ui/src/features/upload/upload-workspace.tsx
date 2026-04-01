@@ -124,10 +124,10 @@ export function UploadWorkspace({
           <div className="px-5 pt-4 pb-3 border-b border-border/40 flex flex-wrap items-center gap-2">
             <Layers3 className="w-3.5 h-3.5 text-primary" />
             <h2 className="text-xs font-semibold text-foreground">
-              Phan loai don vi
+              Phân loại đơn vị
             </h2>
             <span className="ml-auto text-[10px] text-muted-foreground">
-              {userCostCenters.length} CC kha dung
+              {userCostCenters.length} CC khả dụng
             </span>
           </div>
           <div className="px-5 py-4 space-y-3">
@@ -196,7 +196,7 @@ export function UploadWorkspace({
             <div className="grid gap-3 md:grid-cols-3">
               <div className="space-y-1.5">
                 <Label className="flex items-center gap-1 text-[11px] font-semibold text-foreground">
-                  <Building2 className="w-3 h-3 text-primary" /> Cong ty
+                  <Building2 className="w-3 h-3 text-primary" /> Công ty
                 </Label>
                 <Select
                   value={selectedCompanyId}
@@ -204,10 +204,12 @@ export function UploadWorkspace({
                   disabled={notLoggedIn || isLoggingIn}
                 >
                   <SelectTrigger className="h-10 rounded-2xl border-border/70 text-xs bg-[#f8f9fc]">
-                    <SelectValue placeholder="Dang nhap truoc..." />
+                    <SelectValue placeholder="Đăng nhập trước..." />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    <SelectItem value={ALL}>Tat ca ({userCompanies.length})</SelectItem>
+                    <SelectItem value={ALL}>
+                      Tất cả ({userCompanies.length})
+                    </SelectItem>
                     {userCompanies.map((company) => (
                       <SelectItem
                         key={company.company_id}
@@ -230,16 +232,25 @@ export function UploadWorkspace({
                   disabled={notLoggedIn || isLoggingIn}
                 >
                   <SelectTrigger className="h-10 rounded-2xl border-border/70 text-xs bg-[#f8f9fc]">
-                    <SelectValue placeholder="Dang nhap truoc..." />
+                    <SelectValue placeholder="Đăng nhập trước..." />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    <SelectItem value={ALL}>Tat ca ({userCostCenters.length})</SelectItem>
+                    <SelectItem value={ALL}>
+                      Tất cả ({userCostCenters.length})
+                    </SelectItem>
                     {userCostCenters.map((cc) => (
                       <SelectItem
+<<<<<<< Updated upstream
                         key={cc.cost_center_id ?? cc.cost_center_code}
                         value={String(cc.cost_center_id ?? cc.cost_center_code)}
                       >
                         [{cc.cost_center_id ?? cc.cost_center_code}] {cc.cost_center_name}
+=======
+                        key={cc.cost_center_code}
+                        value={cc.cost_center_code}
+                      >
+                        [{cc.cost_center_code}] {cc.cost_center_name}
+>>>>>>> Stashed changes
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -248,7 +259,7 @@ export function UploadWorkspace({
 
               <div className="space-y-1.5">
                 <Label className="flex items-center gap-1 text-[11px] font-semibold text-foreground">
-                  <Layers3 className="w-3 h-3 text-primary" /> Khoi kinh doanh
+                  <Layers3 className="w-3 h-3 text-primary" /> Khối kinh doanh
                 </Label>
                 <Select
                   value={selectedPlanId}
@@ -256,12 +267,17 @@ export function UploadWorkspace({
                   disabled={notLoggedIn || isLoggingIn}
                 >
                   <SelectTrigger className="h-10 rounded-2xl border-border/70 text-xs bg-[#f8f9fc]">
-                    <SelectValue placeholder="Dang nhap truoc..." />
+                    <SelectValue placeholder="Đăng nhập trước..." />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    <SelectItem value={ALL}>Tat ca ({userPlans.length})</SelectItem>
+                    <SelectItem value={ALL}>
+                      Tất cả ({userPlans.length})
+                    </SelectItem>
                     {userPlans.map((plan) => (
-                      <SelectItem key={plan.plan_id} value={String(plan.plan_id)}>
+                      <SelectItem
+                        key={plan.plan_id}
+                        value={String(plan.plan_id)}
+                      >
                         {plan.plan_name}
                       </SelectItem>
                     ))}
@@ -270,17 +286,34 @@ export function UploadWorkspace({
               </div>
             </div>
 
+<<<<<<< Updated upstream
+=======
+            {notLoggedIn === false &&
+              (selectedCompanyId === ALL || selectedCCId === ALL) && (
+                <p className="text-[11px] text-amber-600 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  Cần chọn cụ thể Công ty và Cost Center để submit.
+                </p>
+              )}
+>>>>>>> Stashed changes
           </div>
         </div>
 
         <div className="bg-white border border-border/60 rounded-[28px] shadow-sm overflow-hidden flex flex-col">
           <div className="px-5 pt-4 pb-3 border-b border-border/40 flex flex-wrap items-center gap-2">
             <CloudUpload className="w-3.5 h-3.5 text-primary" />
-            <h2 className="text-xs font-semibold text-foreground">Upload file</h2>
+            <h2 className="text-xs font-semibold text-foreground">
+              Upload file
+            </h2>
             <span className="inline-flex items-center rounded-full border border-border/60 bg-[#f8f9fc] px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
               {activeTarget
+<<<<<<< Updated upstream
                 ? `Dang check: ${activeTarget.label}`
                 : "Chon fact de check"}
+=======
+                ? `Đã nhận diện: ${activeTarget.label}`
+                : "Tự nhận diện fact"}
+>>>>>>> Stashed changes
             </span>
             <span className="ml-auto text-[10px] text-muted-foreground">
               CSV · XLSX
@@ -288,7 +321,12 @@ export function UploadWorkspace({
           </div>
           <div className="p-4 flex flex-col gap-3 flex-1">
             <div className="rounded-xl border border-border/60 bg-[#f8f9fc] px-3 py-2 text-[11px] text-muted-foreground">
+<<<<<<< Updated upstream
               Data preview va validation se chay theo fact dang chon o ben trai.
+=======
+              Hệ thống tự nhận diện fact từ header file rồi mới kiểm tra dữ
+              liệu.
+>>>>>>> Stashed changes
             </div>
 
             <input
@@ -330,9 +368,11 @@ export function UploadWorkspace({
                 </div>
                 <div className="text-center">
                   <p className="text-xs font-semibold text-foreground">
-                    Keo tha file vao day
+                    Kéo thả file vào đây
                   </p>
-                  <p className="text-[11px] text-muted-foreground">hoac chon file</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    hoặc chọn file
+                  </p>
                 </div>
               </div>
             ) : (
@@ -375,8 +415,8 @@ export function UploadWorkspace({
                   </p>
                   {validationStatus === "valid" && (
                     <p className="text-[10px] text-emerald-600 font-medium mt-1">
-                      {totalRows.toLocaleString()} dong ·{" "}
-                      {activeTarget ? activeTarget.label : "Hop le"}
+                      {totalRows.toLocaleString()} dòng ·{" "}
+                      {activeTarget ? activeTarget.label : "Hợp lệ"}
                     </p>
                   )}
                   {validationStatus !== "valid" && activeTarget && (
@@ -395,7 +435,7 @@ export function UploadWorkspace({
               className="gap-1.5 rounded-2xl h-9 border-border/70 text-xs w-full"
             >
               <Upload className="w-3 h-3" />
-              {fileName ? "Thay file khac" : "Chon file"}
+              {fileName ? "Thay file khác" : "Chọn file"}
             </Button>
 
             <div className="flex-1" />
@@ -406,12 +446,17 @@ export function UploadWorkspace({
               size="sm"
               className="gap-1.5 rounded-2xl h-10 w-full shadow-sm font-semibold text-xs"
             >
+<<<<<<< Updated upstream
               {isSubmitting ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
                 <ClipboardList className="w-3.5 h-3.5" />
               )}
               Gui du lieu
+=======
+              <ClipboardList className="w-3.5 h-3.5" />
+              Gửi dữ liệu
+>>>>>>> Stashed changes
             </Button>
           </div>
         </div>
@@ -422,7 +467,7 @@ export function UploadWorkspace({
           <div className="px-5 py-3.5 border-b border-red-200 flex flex-wrap items-center gap-2">
             <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
             <span className="text-xs font-semibold text-red-700">
-              Phat hien {validationErrors.length} loi trong file
+              Phát hiện {validationErrors.length} lỗi trong file
             </span>
           </div>
           <ul className="px-5 py-3 space-y-2">
@@ -445,7 +490,7 @@ export function UploadWorkspace({
           <div className="px-5 py-3.5 border-b border-amber-200 flex flex-wrap items-center gap-2">
             <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
             <span className="text-xs font-semibold text-amber-700">
-              Co {validationWarnings.length} canh bao du lieu
+              Có {validationWarnings.length} cảnh báo dữ liệu
             </span>
           </div>
           <ul className="px-5 py-3 space-y-2">
@@ -468,15 +513,21 @@ export function UploadWorkspace({
           <div className="flex items-center gap-2 min-w-0">
             <ClipboardList className="w-4 h-4 text-primary shrink-0" />
             <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-foreground">Data Preview</h2>
+              <h2 className="text-sm font-semibold text-foreground">
+                Data Preview
+              </h2>
               <p className="text-[11px] text-muted-foreground">
+<<<<<<< Updated upstream
                 Preview hien thi toi da 200 dong va duoc check theo fact dang chon.
+=======
+                Preview hiển thị tối đa 200 dòng trước khi submit.
+>>>>>>> Stashed changes
               </p>
             </div>
           </div>
           {rows.length > 0 && (
             <span className="text-xs bg-primary/10 text-primary font-semibold px-3 py-1 rounded-full">
-              {rows.length.toLocaleString()} / {totalRows.toLocaleString()} dong
+              {rows.length.toLocaleString()} / {totalRows.toLocaleString()} dòng
             </span>
           )}
         </div>
@@ -534,7 +585,7 @@ export function UploadWorkspace({
               <FileSpreadsheet className="w-8 h-8 text-muted-foreground/40" />
             </div>
             <p className="text-sm font-medium text-muted-foreground">
-              Chua co du lieu preview
+              Chưa có dữ liệu preview
             </p>
           </div>
         )}

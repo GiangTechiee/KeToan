@@ -52,3 +52,21 @@ export interface FilterScope {
   userPlans: Plan[];
   userCostCenters: CostCenter[];
 }
+<<<<<<< Updated upstream
+=======
+
+export const ROW_COLUMN_MAP: { db: keyof UploadRowInsert; label: string }[] = [
+  { db: "file_date", label: "Ngày" },
+  { db: "system_code", label: "Mã hệ thống" },
+  { db: "metric_group", label: "Nhóm chỉ tiêu" },
+  { db: "category_name", label: "Khoản mục" },
+  { db: "subcategory_name", label: "Tiểu mục" },
+  { db: "attribute_name", label: "Thuộc tính" },
+  { db: "content_text", label: "Nội dung" },
+  { db: "company_name_in_file", label: "Công ty" },
+  { db: "data_type", label: "Loại dữ liệu" },
+  { db: "block_name", label: "Khối" },
+  { db: "department_name", label: "Bộ phận" },
+  { db: "amount", label: "Số tiền" },
+];
+>>>>>>> Stashed changes

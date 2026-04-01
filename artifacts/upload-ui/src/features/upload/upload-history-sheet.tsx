@@ -22,8 +22,17 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+<<<<<<< Updated upstream
 import type { UploadBatchStatus } from "@/types/supabase";
 import { type BatchPreviewRow, type BatchRecord } from "./types";
+=======
+import type { Company, UploadBatchStatus } from "@/types/supabase";
+import {
+  ROW_COLUMN_MAP,
+  type BatchPreviewRow,
+  type BatchRecord,
+} from "./types";
+>>>>>>> Stashed changes
 
 type UploadHistorySheetProps = {
   allCompanies: unknown[];
@@ -48,7 +57,7 @@ const STATUS_CONFIG: Record<
   { label: string; icon: typeof FileClock; className: string }
 > = {
   draft: {
-    label: "Nhap",
+    label: "Nháp",
     icon: FileClock,
     className: "bg-amber-50 text-amber-700 border-amber-200",
   },
@@ -68,15 +77,23 @@ const STATUS_CONFIG: Record<
     className: "bg-red-50 text-red-700 border-red-200",
   },
   validated: {
-    label: "Da kiem tra",
+    label: "Đã kiểm tra",
     icon: FileCheck2,
     className: "bg-blue-50 text-blue-700 border-blue-200",
   },
   submitted: {
-    label: "Da gui",
+    label: "Đã gửi",
     icon: FileCheck2,
     className: "bg-emerald-50 text-emerald-700 border-emerald-200",
   },
+<<<<<<< Updated upstream
+=======
+  failed: {
+    label: "Lỗi",
+    icon: FileX2,
+    className: "bg-red-50 text-red-700 border-red-200",
+  },
+>>>>>>> Stashed changes
 };
 
 function BatchPreviewDialog({
@@ -97,6 +114,7 @@ function BatchPreviewDialog({
         <DialogHeader className="px-6 py-4 border-b border-border/40">
           <DialogTitle className="flex items-center gap-2 text-sm">
             <FileSpreadsheet className="w-4 h-4 text-primary" />
+<<<<<<< Updated upstream
             {previewBatch?.original_file_name ?? previewBatch?.file_name}
           </DialogTitle>
         </DialogHeader>
@@ -109,6 +127,28 @@ function BatchPreviewDialog({
           ) : (
             <p className="text-sm text-muted-foreground">
               {uploadRowsPreviewNotice ?? "Khong co du lieu preview."}
+=======
+            {previewBatch?.file_name}
+            <span className="text-muted-foreground font-normal text-xs">
+              #{previewBatch?.batch_id.slice(0, 8)} ·{" "}
+              {previewBatch?.total_rows?.toLocaleString()} dòng
+            </span>
+          </DialogTitle>
+        </DialogHeader>
+
+        {batchRowsLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-7 h-7 animate-spin text-primary" />
+            <span className="ml-3 text-sm text-muted-foreground">
+              Đang tải dữ liệu...
+            </span>
+          </div>
+        ) : batchRows.length === 0 ? (
+          <div className="flex flex-col items-center py-16 gap-3">
+            <FileSpreadsheet className="w-10 h-10 text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground">
+              Không có dữ liệu để hiển thị
+>>>>>>> Stashed changes
             </p>
           )}
         </div>
@@ -170,7 +210,7 @@ function HistoryBatchCard({
               {createdAt}
             </span>
             <span className="text-[10px] font-mono text-muted-foreground">
-              {batch.total_rows.toLocaleString()} dong
+              {batch.total_rows.toLocaleString()} dòng
             </span>
             <span className="text-[10px] text-muted-foreground">
               OK: {batch.success_rows.toLocaleString()}
@@ -216,16 +256,19 @@ export function UploadHistorySheet({
             <div className="flex items-center justify-between">
               <SheetTitle className="flex items-center gap-2 text-base">
                 <History className="w-4 h-4 text-primary" />
-                Lich su file upload
+                Lịch sử file upload
               </SheetTitle>
               <button
                 onClick={() => void onRefresh()}
                 disabled={historyLoading}
                 className="text-muted-foreground hover:text-foreground p-1 rounded-md transition-colors"
-                title="Lam moi"
+                title="Làm mới"
               >
                 <RefreshCw
-                  className={cn("w-3.5 h-3.5", historyLoading && "animate-spin")}
+                  className={cn(
+                    "w-3.5 h-3.5",
+                    historyLoading && "animate-spin",
+                  )}
                 />
               </button>
             </div>
@@ -254,7 +297,7 @@ export function UploadHistorySheet({
                   <FileSpreadsheet className="w-6 h-6 text-muted-foreground/40" />
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Chua co file nao duoc upload
+                  Chưa có file nào được upload
                 </p>
               </div>
             ) : (

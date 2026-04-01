@@ -421,7 +421,7 @@ export function useUploadWorkflow({
         clearParsedRows();
         setValidationStatus("invalid");
         setValidationWarnings([]);
-        setValidationErrors(["Chi chap nhan file CSV hoac XLSX/XLS."]);
+        setValidationErrors(["Chỉ chấp nhận file CSV hoặc XLSX/XLS."]);
         return;
       }
 
@@ -470,7 +470,7 @@ export function useUploadWorkflow({
           clearParsedRows();
           setValidationStatus("invalid");
           setValidationWarnings([]);
-          setValidationErrors(["File khong co du lieu."]);
+          setValidationErrors(["File không có dữ liệu."]);
           return;
         }
 
@@ -491,9 +491,13 @@ export function useUploadWorkflow({
           setValidationStatus("invalid");
           setValidationWarnings([]);
           setValidationErrors([
+<<<<<<< Updated upstream
             detectedFact
               ? `File co ve thuoc fact "${detectedFact.factConfig.label}", khong phai tab "${activeTarget.label}".`
               : `Khong tim thay header hop le cho fact "${activeTarget.label}".`,
+=======
+            "Không tự nhận diện được fact từ header workbook.",
+>>>>>>> Stashed changes
           ]);
           return;
         }
@@ -507,10 +511,42 @@ export function useUploadWorkflow({
 
         if (missingColumns.length) {
           structuralErrors.push(
-            `Thieu ${missingColumns.length} cot: ${missingColumns.join(", ")}`,
+            `Thiếu ${missingColumns.length} cột: ${missingColumns.join(", ")}`,
           );
         }
 
+<<<<<<< Updated upstream
+=======
+        if (!missingColumns.length) {
+          const orderErrors = factConfig.requiredColumns.flatMap(
+            (column, expectedIndex) => {
+              const actualIndex = fileHeaders.indexOf(column);
+              return actualIndex !== expectedIndex
+                ? [
+                    `"${column}" (vị trí ${actualIndex + 1}, cần ${expectedIndex + 1})`,
+                  ]
+                : [];
+            },
+          );
+
+          if (orderErrors.length) {
+            structuralErrors.push(
+              `Sai thứ tự ${orderErrors.length} cột: ${orderErrors.join("; ")}`,
+            );
+          }
+        }
+
+        const extraColumns = fileHeaders.filter(
+          (column) => !factConfig.requiredColumns.includes(column),
+        );
+
+        if (extraColumns.length) {
+          structuralErrors.push(
+            `${extraColumns.length} cột không nhận dạng: ${extraColumns.join(", ")}`,
+          );
+        }
+
+>>>>>>> Stashed changes
         if (structuralErrors.length) {
           clearParsedRows();
           setValidationStatus("invalid");
@@ -551,7 +587,9 @@ export function useUploadWorkflow({
         clearParsedRows();
         setValidationStatus("invalid");
         setValidationWarnings([]);
-        setValidationErrors(["Khong the doc file. Hay kiem tra lai dinh dang file."]);
+        setValidationErrors([
+          "Không thể đọc file. Hãy kiểm tra lại định dạng file.",
+        ]);
       }
     },
     [
@@ -779,6 +817,7 @@ export function useUploadWorkflow({
         throw new Error(existingUploadFileError.message);
       }
 
+<<<<<<< Updated upstream
       if (existingUploadFile?.upload_file_id) {
         uploadFileId = existingUploadFile.upload_file_id;
       } else {
@@ -810,6 +849,12 @@ export function useUploadWorkflow({
         }
 
         uploadFileId = insertedUploadFile.upload_file_id;
+=======
+      if (duplicateRows?.length) {
+        throw new Error(
+          "Đã tồn tại batch trùng công ty và cost center trong ngày.",
+        );
+>>>>>>> Stashed changes
       }
 
       const batchPayload: UploadBatchInsert = {
@@ -842,12 +887,13 @@ export function useUploadWorkflow({
         .single();
 
       if (batchError || !insertedBatch) {
-        throw new Error(batchError?.message ?? "Khong the tao batch upload.");
+        throw new Error(batchError?.message ?? "Không thể tạo batch upload.");
       }
 
       const batchId = insertedBatch.upload_batch_id;
       createdBatchId = batchId;
 
+<<<<<<< Updated upstream
       const factRows = buildFactRows({
         companyId: selectedCompanyValue,
         costCenterId: selectedCostCenterValue,
@@ -860,6 +906,13 @@ export function useUploadWorkflow({
         uploadBatchId: batchId,
         userName: loggedInUser.full_name,
       });
+=======
+      for (let index = 0; index < rowPayload.length; index += 500) {
+        const chunk = rowPayload.slice(index, index + 500);
+        const { error: rowError } = await supabase
+          .from("upload_rows")
+          .insert(chunk);
+>>>>>>> Stashed changes
 
       await insertInChunks(activeTarget.tableName, factRows);
 
@@ -872,6 +925,7 @@ export function useUploadWorkflow({
         status: "completed",
       };
 
+<<<<<<< Updated upstream
       const { error: batchFactError } = await supabase
         .from("upload_batch_facts")
         .insert(batchFactPayload);
@@ -906,6 +960,19 @@ export function useUploadWorkflow({
 
         if (finalizeUploadFileError) {
           throw new Error(finalizeUploadFileError.message);
+=======
+        if (tableMissing) {
+          toast({
+            title: "Submit thành công",
+            description:
+              "Batch đã được tạo, nhưng live DB chưa có bảng upload_rows để lưu preview từng dòng.",
+          });
+          handleClearFile();
+          if (onSubmitted) {
+            await onSubmitted();
+          }
+          return;
+>>>>>>> Stashed changes
         }
       }
 
@@ -913,7 +980,7 @@ export function useUploadWorkflow({
       if (onSubmitted) {
         await onSubmitted();
       }
-      toast({ title: "Submit thanh cong" });
+      toast({ title: "Submit thành công" });
     } catch (error) {
       if (createdBatchId !== null) {
         await supabase
@@ -926,9 +993,9 @@ export function useUploadWorkflow({
       }
 
       toast({
-        title: "Submit that bai",
+        title: "Submit thất bại",
         description:
-          error instanceof Error ? error.message : "Loi khong xac dinh",
+          error instanceof Error ? error.message : "Lỗi không xác định",
         variant: "destructive",
       });
     } finally {
