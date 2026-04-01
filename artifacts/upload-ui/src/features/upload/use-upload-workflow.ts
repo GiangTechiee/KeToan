@@ -657,11 +657,35 @@ export function useUploadWorkflow({
     let uploadFileId: number | null = null;
 
     try {
+      const scopeCompanyValue =
+        selectedCompanyId !== ALL
+          ? selectedCompanyId
+          : scope.userCompanies.length === 1
+            ? String(scope.userCompanies[0]?.company_id ?? "")
+            : null;
+      const scopePlanValue =
+        selectedPlanId !== ALL
+          ? Number(selectedPlanId)
+          : scope.userPlans.length === 1
+            ? scope.userPlans[0]?.plan_id ?? null
+            : null;
+      const scopeCostCenterValue =
+        selectedCCId !== ALL
+          ? selectedCCId
+          : scope.userCostCenters.length === 1
+            ? String(
+                scope.userCostCenters[0]?.cost_center_id ??
+                  scope.userCostCenters[0]?.cost_center_code ??
+                  "",
+              )
+            : null;
       const selectedCompanyValue =
-        selectedCompanyId !== ALL ? selectedCompanyId : null;
-      const selectedCostCenterValue = selectedCCId !== ALL ? selectedCCId : null;
-      const selectedPlanValue =
-        selectedPlanId !== ALL ? Number(selectedPlanId) : null;
+        scopeCompanyValue && scopeCompanyValue !== "" ? scopeCompanyValue : null;
+      const selectedCostCenterValue =
+        scopeCostCenterValue && scopeCostCenterValue !== ""
+          ? scopeCostCenterValue
+          : null;
+      const selectedPlanValue = scopePlanValue;
       const allowedCompanies =
         selectedCompanyValue === null
           ? scope.userCompanies
